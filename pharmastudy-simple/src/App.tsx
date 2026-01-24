@@ -123,31 +123,63 @@ export default function PharmaStudy() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (isLogin) {
-        const { data, error } = await supabase.auth.signIn({ email, password });
-        if (!error && data.user) {
-          setUser(data.user as User);
-          loadChapters();
-        }
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (!error && data.user) {
-          setUser(data.user as User);
-        }
+     if (isLogin) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password: password,
+  });
+  
+  if (error) throw error;
+  
+  if (data.user) {
+    setUser({ 
+      id: data.user.id, 
+      email: data.user.email || '',
+      name: data.user.user_metadata?.full_name || data.user.email
+    });
+    await loadChapters();
+  }
+} else {
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password: password,
+    options: {
+      data: {
+        full_name: name
       }
+    }
+  });
+  
+  if (error) throw error;
+  
+  if (data.user) {
+    setUser({ 
+      id: data.user.id, 
+      email: data.user.email || '',
+      name: name || data.user.email
+    });
+    alert('Account created successfully!');
+  }
+}
     } catch (error) {
       console.error('Auth error:', error);
     }
   };
 
   const handleLogout = async () => {
+  try {
     await supabase.auth.signOut();
     setUser(null);
     setChapters([]);
     setEmail('');
     setPassword('');
     setName('');
-  };
+    setAuthError('');
+    window.location.reload();
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
 
   // CRUD operations with database sync
   const addChapter = async () => {
