@@ -49,7 +49,7 @@ export default function PharmaStudy() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [authError, setAuthError] = useState('');  const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chapters' | 'search' | 'quiz'>('dashboard');
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -120,27 +120,77 @@ export default function PharmaStudy() {
   };
 
   // Auth handlers
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-     if (isLogin) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password: password,
-  });
+const handleAuth = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setAuthError('');
   
-  if (error) throw error;
-  
-  if (data.user) {
-    setUser({ 
-      id: data.user.id, 
-      email: data.user.email || '',
-      name: data.user.user_metadata?.full_name || data.user.email
-    });
-    await loadChapters();
+  try {
+    if (isLogin) {
+      // LOGIN
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+      
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
+      
+      if (data.user) {
+        setUser({ 
+          id: data.user.id, 
+          email: data.user.email || '',
+          name: data.user.user_metadata?.full_name || data.user.email
+        });
+        await loadChapters();
+      }
+    } else {
+      // SIGN UP
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            full_name: name
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
+      }
+      
+      if (data.user) {
+        // Immediately set user and load data
+        setUser({ 
+          id: data.user.id, 
+          email: data.user.email || '',
+          name: name || data.user.email
+        });
+        
+        // Wait a moment for database to be ready
+        setTimeout(async () => {
+          await loadChapters();
+          alert('✅ Account created! You can now add chapters and molecules.');
+        }, 500);
+      }
+    }
+  } catch (error: any) {
+    console.error('Auth error:', error);
+    setAuthError(error.message || 'Authentication failed. Please check your credentials and try again.');
   }
-} else {
-  const { data, error } = await supabase.auth.signUp({
+};
+    
+    // Load chapters after successful signup
+    await loadChapters();
+    
+    alert('Account created successfully! You can now add your molecules.');
+  } else {
+    throw new Error('Sign up failed. Please try again.');
+  }
+}
     email: email.trim(),
     password: password,
     options: {
@@ -576,7 +626,14 @@ This molecule was automatically imported from the PubChem database. Add addition
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
+            <form onSubmit={handleAuth} className="space-y-4">
+  {authError && (
+    <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 rounded-lg">
+      <p className="text-sm text-red-700 dark:text-red-400">{authError}</p>
+    </div>
+  )}
+  
+  {!isLogin && (            {!isLogin && (
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Full Name
