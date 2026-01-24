@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Download, Brain, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
-import { supabase } from './supabase';
+import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Download, Brain, PlayCircle, CheckCircle, XCircle, ChevronRight, ArrowLeft, Maximize2 } from 'lucide-react';import { supabase } from './supabase';
 
 // ==================== DATABASE CONNECTED ====================
 
@@ -52,7 +51,10 @@ export default function PharmaStudy() {
   const [authError, setAuthError] = useState('');  const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chapters' | 'search' | 'quiz'>('dashboard');
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecules'>('chapters');
+const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+const [viewingMolecule, setViewingMolecule] = useState<Molecule | null>(null);  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [editingTopic, setEditingTopic] = useState<{ chapter: Chapter; topic: Topic | null } | null>(null);
@@ -216,7 +218,30 @@ const handleAuth = async (e: React.FormEvent) => {
     }
   };
 
-  const handleLogout = async () => {
+// Navigation helpers
+const goToChapters = () => {
+  setCurrentView('chapters');
+  setSelectedChapter(null);
+  setSelectedTopic(null);
+  setViewingMolecule(null);
+};
+
+const goToTopics = (chapter: Chapter) => {
+  setSelectedChapter(chapter);
+  setCurrentView('topics');
+  setSelectedTopic(null);
+  setViewingMolecule(null);
+};
+
+const goToMolecules = (topic: Topic) => {
+  setSelectedTopic(topic);
+  setCurrentView('molecules');
+  setViewingMolecule(null);
+};
+
+const openMoleculeDetail = (molecule: Molecule) => {
+  setViewingMolecule(molecule);
+};  const handleLogout = async () => {
   try {
     await supabase.auth.signOut();
     setUser(null);
@@ -791,8 +816,9 @@ This molecule was automatically imported from the PubChem database. Add addition
             </button>
 
             <button
-              onClick={() => setActiveTab('chapters')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+  onClick={() => { setActiveTab('chapters'); goToChapters(); }}
+  className={...}
+>
                 activeTab === 'chapters'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
                   : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
@@ -846,7 +872,36 @@ This molecule was automatically imported from the PubChem database. Add addition
 
         {/* Main Content - CONTINUING IN NEXT PART DUE TO LENGTH */}
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-          {/* Dashboard */}
+          {/* Breadcrumb Navigation */}
+{activeTab === 'chapters' && (
+  <div className={`mb-4 flex items-center gap-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+    <button 
+      onClick={goToChapters}
+      className={`hover:text-blue-500 transition-colors ${currentView === 'chapters' ? 'font-semibold' : ''}`}
+    >
+      📚 Chapters
+    </button>
+    
+    {selectedChapter && (
+      <>
+        <ChevronRight className="w-4 h-4" />
+        <button 
+          onClick={() => goToTopics(selectedChapter)}
+          className={`hover:text-blue-500 transition-colors ${currentView === 'topics' ? 'font-semibold' : ''}`}
+        >
+          {selectedChapter.name}
+        </button>
+      </>
+    )}
+    
+    {selectedTopic && (
+      <>
+        <ChevronRight className="w-4 h-4" />
+        <span className="font-semibold">{selectedTopic.name}</span>
+      </>
+    )}
+  </div>
+)}          {/* Dashboard */}
           {activeTab === 'dashboard' && (
             <div>
               <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
@@ -928,181 +983,248 @@ This molecule was automatically imported from the PubChem database. Add addition
 
 {/* CHAPTERS VIEW - Same as before but with PubChem button */}
           {activeTab === 'chapters' && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Chapters & Topics</h1>
-                <button
-                  onClick={addChapter}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Add Chapter</span>
-                </button>
+  <div>
+    {/* Back button when in topics or molecules view */}
+    {currentView !== 'chapters' && (
+      <button
+        onClick={() => {
+          if (currentView === 'molecules') {
+            goToTopics(selectedChapter!);
+          } else {
+            goToChapters();
+          }
+        }}
+        className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+          darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+        } transition-colors`}
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back</span>
+      </button>
+    )}
+
+    {/* Chapters List View */}
+    {currentView === 'chapters' && (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Your Chapters</h1>
+          <button
+            onClick={addChapter}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Chapter</span>
+          </button>
+        </div>
+
+        {chapters.length === 0 ? (
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+            <BookOpen className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className="text-xl font-bold mb-2">No chapters yet</h3>
+            <p className={`mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Create your first chapter to start organizing molecules!
+            </p>
+            <button
+              onClick={addChapter}
+              className="bg-gradient-to-r from-blue-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+            >
+              Create First Chapter
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {chapters.map(chapter => (
+              <div
+                key={chapter.id}
+                className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-lg'} rounded-xl p-6 transition-all cursor-pointer border-2 border-transparent hover:border-blue-500`}
+                onClick={() => goToTopics(chapter)}
+              >
+                {editingChapter?.id === chapter.id ? (
+                  <input
+                    type="text"
+                    value={editingChapter.name}
+                    onChange={(e) => setEditingChapter({ ...editingChapter, name: e.target.value })}
+                    onBlur={() => updateChapter(chapter.id, editingChapter.name)}
+                    onKeyPress={(e) => e.key === 'Enter' && updateChapter(chapter.id, editingChapter.name)}
+                    className={`w-full px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'} mb-3`}
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <h3 className="text-xl font-bold mb-3">{chapter.name}</h3>
+                )}
+                
+                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {chapter.topics.length} topics • {chapter.topics.reduce((sum, t) => sum + t.molecules.length, 0)} molecules
+                </p>
+                
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-sm`}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
+                    className="flex items-center gap-1 px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 text-sm"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
+                </div>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
 
-              {chapters.length === 0 ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                  <h3 className="text-xl font-bold mb-2">No chapters yet</h3>
-                  <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                    Click "Add Chapter" to get started!
-                  </p>
+    {/* Topics List View */}
+    {currentView === 'topics' && selectedChapter && (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">{selectedChapter.name} - Topics</h1>
+          <button
+            onClick={addTopic}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Topic</span>
+          </button>
+        </div>
+
+        {selectedChapter.topics.length === 0 ? (
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+            <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className="text-xl font-bold mb-2">No topics yet</h3>
+            <p className={`mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Add your first topic to this chapter!
+            </p>
+            <button
+              onClick={addTopic}
+              className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+            >
+              Create First Topic
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selectedChapter.topics.map(topic => (
+              <div
+                key={topic.id}
+                className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-lg'} rounded-xl p-6 transition-all cursor-pointer border-2 border-transparent hover:border-green-500`}
+                onClick={() => goToMolecules(topic)}
+              >
+                {editingTopic?.id === topic.id ? (
+                  <input
+                    type="text"
+                    value={editingTopic.name}
+                    onChange={(e) => setEditingTopic({ ...editingTopic, name: e.target.value })}
+                    onBlur={() => updateTopic(topic.id, editingTopic.name)}
+                    onKeyPress={(e) => e.key === 'Enter' && updateTopic(topic.id, editingTopic.name)}
+                    className={`w-full px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'} mb-3`}
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <h3 className="text-xl font-bold mb-3">🧬 {topic.name}</h3>
+                )}
+                
+                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {topic.molecules.length} molecules
+                </p>
+                
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingTopic(topic); }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-sm`}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteTopic(selectedChapter.id, topic.id); }}
+                    className="flex items-center gap-1 px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 text-sm"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {chapters.map(chapter => (
-                    <div key={chapter.id} className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 shadow-lg`}>
-                      <div className="flex items-center justify-between mb-4">
-                        {editingChapter?.id === chapter.id ? (
-                          <input
-                            type="text"
-                            value={editingChapter.name}
-                            onChange={(e) => setEditingChapter({ ...editingChapter, name: e.target.value })}
-                            onBlur={() => updateChapter(chapter.id, editingChapter.name)}
-                            onKeyPress={(e) => e.key === 'Enter' && updateChapter(chapter.id, editingChapter.name)}
-                            className={`text-2xl font-bold border-b-2 border-teal-500 focus:outline-none ${
-                              darkMode ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-900'
-                            } px-2 py-1`}
-                            autoFocus
-                          />
-                        ) : (
-                          <h2 className="text-2xl font-bold">{chapter.name}</h2>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditingChapter(chapter)}
-                            className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteChapter(chapter.id)}
-                            className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
 
-                      <button
-                        onClick={() => addTopic(chapter.id)}
-                        className={`w-full mb-4 flex items-center justify-center gap-2 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50 hover:bg-blue-100'} text-blue-600 px-4 py-2 rounded-lg transition-all`}
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Topic</span>
-                      </button>
+    {/* Molecules Grid View */}
+    {currentView === 'molecules' && selectedTopic && (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">{selectedTopic.name} - Molecules</h1>
+          <button
+            onClick={() => addMolecule(selectedChapter!.id, selectedTopic.id)}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Molecule</span>
+          </button>
+        </div>
 
-                      <div className="space-y-4">
-                        {chapter.topics.map(topic => (
-                          <div key={topic.id} className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
-                            <div className="flex items-center justify-between mb-3">
-                              {editingTopic?.topic?.id === topic.id ? (
-                                <input
-                                  type="text"
-                                  value={editingTopic.topic.name}
-                                  onChange={(e) => setEditingTopic({ ...editingTopic, topic: { ...editingTopic.topic!, name: e.target.value } })}
-                                  onBlur={() => updateTopic(chapter.id, topic.id, editingTopic.topic!.name)}
-                                  onKeyPress={(e) => e.key === 'Enter' && updateTopic(chapter.id, topic.id, editingTopic.topic!.name)}
-                                  className={`text-lg font-semibold border-b-2 border-teal-500 focus:outline-none ${
-                                    darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'
-                                  } px-2 py-1`}
-                                  autoFocus
-                                />
-                              ) : (
-                                <h3 className="text-lg font-semibold">{topic.name}</h3>
-                              )}
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => setEditingTopic({ chapter, topic })}
-                                  className={`p-1 rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => deleteTopic(chapter.id, topic.id)}
-                                  className={`p-1 rounded ${darkMode ? 'hover:bg-gray-600 text-red-400' : 'hover:bg-gray-200 text-red-600'}`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 mb-3">
-                              <button
-                                onClick={() => addMolecule(chapter.id, topic.id)}
-                                className={`flex-1 flex items-center justify-center gap-2 ${darkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-white hover:bg-gray-100'} px-3 py-2 rounded-lg text-sm transition-all`}
-                              >
-                                <Plus className="w-4 h-4" />
-                                <span>Add Manually</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingMolecule({ 
-                                    chapter, 
-                                    topic, 
-                                    molecule: {
-                                      id: Date.now().toString(),
-                                      name: '',
-                                      smiles: '',
-                                      formula: '',
-                                      description: ''
-                                    }
-                                  });
-                                  setShowPubchemModal(true);
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 ${darkMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white px-3 py-2 rounded-lg text-sm transition-all`}
-                              >
-                                <Search className="w-4 h-4" />
-                                <span>PubChem</span>
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {topic.molecules.map(molecule => (
-                                <div key={molecule.id} className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow`}>
-                                  <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-semibold text-sm">{molecule.name}</h4>
-                                    <div className="flex gap-1">
-                                      <button
-                                        onClick={() => setEditingMolecule({ chapter, topic, molecule })}
-                                        className={`p-1 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        onClick={() => deleteMolecule(chapter.id, topic.id, molecule.id)}
-                                        className={`p-1 rounded ${darkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>{molecule.formula}</p>
-                                  <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded p-2 mb-2`}>
-                                    <img
-                                      src={`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encodeURIComponent(molecule.smiles)}/PNG`}
-                                      alt={molecule.name}
-                                      className="w-full h-32 object-contain"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  </div>
-                                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>
-                                    {molecule.description}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+        {selectedTopic.molecules.length === 0 ? (
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+            <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className="text-xl font-bold mb-2">No molecules yet</h3>
+            <p className={`mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Add your first molecule to this topic!
+            </p>
+            <button
+              onClick={() => addMolecule(selectedChapter!.id, selectedTopic.id)}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+            >
+              Add First Molecule
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {selectedTopic.molecules.map(molecule => (
+              <div
+                key={molecule.id}
+                className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-purple-500`}
+              >
+                {molecule.image_url && (
+                  <img 
+                    src={molecule.image_url} 
+                    alt={molecule.name}
+                    className="w-full h-32 object-contain mb-3 rounded-lg bg-white cursor-pointer"
+                    onClick={() => openMoleculeDetail(molecule)}
+                  />
+                )}
+                
+                <h4 className="font-bold mb-1 truncate">{molecule.name}</h4>
+                <p className={`text-sm mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {molecule.formula}
+                </p>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openMoleculeDetail(molecule)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm hover:shadow-lg transition-all"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                    View
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+)}
 
           {/* SEARCH VIEW - Same as before */}
           {activeTab === 'search' && (
