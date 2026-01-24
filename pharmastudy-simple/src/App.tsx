@@ -1,66 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Download, Brain, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from './supabase';
 
-// ==================== SUPABASE SETUP ====================
-// You'll need to replace these with your actual Supabase credentials
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Get from https://supabase.com/dashboard
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-
-// Supabase client (simple implementation)
-const supabase = {
-  auth: {
-    signUp: async ({ email, password }: any) => {
-      // This will be replaced with actual Supabase call
-      const user = { id: Date.now().toString(), email };
-      localStorage.setItem('pharmaUser', JSON.stringify(user));
-      return { data: { user }, error: null };
-    },
-    signIn: async ({ email, password }: any) => {
-      const user = { id: Date.now().toString(), email };
-      localStorage.setItem('pharmaUser', JSON.stringify(user));
-      return { data: { user }, error: null };
-    },
-    signOut: async () => {
-      localStorage.removeItem('pharmaUser');
-      return { error: null };
-    },
-    getSession: async () => {
-      const user = localStorage.getItem('pharmaUser');
-      return { data: { session: user ? { user: JSON.parse(user) } : null }, error: null };
-    }
-  },
-  from: (table: string) => ({
-    select: async (columns = '*') => {
-      const data = JSON.parse(localStorage.getItem(`pharma_${table}`) || '[]');
-      return { data, error: null };
-    },
-    insert: async (values: any) => {
-      const data = JSON.parse(localStorage.getItem(`pharma_${table}`) || '[]');
-      const newData = Array.isArray(values) ? values : [values];
-      data.push(...newData);
-      localStorage.setItem(`pharma_${table}`, JSON.stringify(data));
-      return { data: newData, error: null };
-    },
-    update: async (values: any) => ({
-      eq: async (column: string, value: any) => {
-        const data = JSON.parse(localStorage.getItem(`pharma_${table}`) || '[]');
-        const updated = data.map((item: any) => 
-          item[column] === value ? { ...item, ...values } : item
-        );
-        localStorage.setItem(`pharma_${table}`, JSON.stringify(updated));
-        return { data: updated, error: null };
-      }
-    }),
-    delete: async () => ({
-      eq: async (column: string, value: any) => {
-        const data = JSON.parse(localStorage.getItem(`pharma_${table}`) || '[]');
-        const filtered = data.filter((item: any) => item[column] !== value);
-        localStorage.setItem(`pharma_${table}`, JSON.stringify(filtered));
-        return { data: filtered, error: null };
-      }
-    })
-  })
-};
+// ==================== DATABASE CONNECTED ====================
 
 // Types
 interface User {
