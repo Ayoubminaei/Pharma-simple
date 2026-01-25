@@ -7,7 +7,24 @@ interface User {
   email: string;
   name?: string;
 }
-
+<div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🧪 Type
+                    </label>
+                    <select
+                      value={editingMolecule.molecule_type || 'drug'}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, molecule_type: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                    >
+                      <option value="drug">💊 Médicament</option>
+                      <option value="enzyme">🧬 Enzyme</option>
+                      <option value="molecule">⚗️ Molécule</option>
+                    </select>
+                  </div>
 interface Molecule {
   id: string;
   topic_id: string;
@@ -21,6 +38,8 @@ interface Molecule {
   pubchem_cid?: string;
   drug_category?: string;
   primary_function?: string;
+  molecule_type?: string; // 'drug' | 'enzyme' | 'molecule'
+  body_effect?: string; // For molecules - effect on body
   // Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
@@ -590,7 +609,9 @@ const saveMolecule = async () => {
   duration: editingMolecule.duration || null,
   metabolism: editingMolecule.metabolism || null,
   excretion: editingMolecule.excretion || null,
-  side_effects: editingMolecule.side_effects || null
+  side_effects: editingMolecule.side_effects || null,
+   molecule_type: editingMolecule.molecule_type || 'drug',
+  body_effect: editingMolecule.body_effect || null
     };
 
       if (editingMolecule.id) {
@@ -2403,19 +2424,78 @@ const startFlashcards = (chapterId?: string) => {
                       placeholder="e.g., Reduces fever and pain"
                     />
                   </div>                      SMILES (optional)
+
+                      ```javascript
+                  {/* FORMULA - Only for Drug and Molecule */}
+                  {editingMolecule.molecule_type !== 'enzyme' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Formula
+                      </label>
+                      <input
+                        type="text"
+                        value={editingMolecule.formula || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, formula: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                        placeholder="e.g., C₉H₈O₄"
+                      />
+                    </div>
+                  )}
+
+                  {/* IMAGE URL - All types */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      📷 Image URL
                     </label>
                     <input
                       type="text"
-                      value={editingMolecule.smiles || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, smiles: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 font-mono text-sm ${
+                      value={editingMolecule.image_url || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, image_url: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
                         darkMode 
                           ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
                           : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
                       } focus:outline-none`}
+                      placeholder="Paste image URL here"
                     />
+                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      💡 Right-click any image → Copy image address → Paste here
+                    </p>
+                    {editingMolecule.image_url && (
+                      <div className="mt-2 bg-white rounded-lg p-2">
+                        <img 
+                          src={editingMolecule.image_url} 
+                          alt="Preview"
+                          className="w-full h-32 object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
 
+                  {/* SMILES - Only for Drug */}
+                  {editingMolecule.molecule_type === 'drug' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        SMILES (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editingMolecule.smiles || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, smiles: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 font-mono text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                      />
+                    </div>
+                  )}
+
+                  {/* DESCRIPTION - All types */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Description
@@ -2431,14 +2511,35 @@ const startFlashcards = (chapterId?: string) => {
                       } focus:outline-none`}
                     />
                   </div>
-                </div>
-                <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+
+                  {/* BODY EFFECT - Only for Molecule */}
+                  {editingMolecule.molecule_type === 'molecule' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        💪 Effect on Body
+                      </label>
+                      <textarea
+                        value={editingMolecule.body_effect || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, body_effect: e.target.value })}
+                        rows={4}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                        placeholder="Describe how this molecule affects the body..."
+                      />
+                    </div>
+                  )}
+
+                  {/* MECHANISM OF ACTION - All types */}
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <h3 className="text-lg font-bold mb-4">⚙️ Mechanism of Action</h3>
                     
                     <div className="space-y-3">
                       <input
                         type="text"
-                        placeholder="Drug Class (e.g., NSAID, Beta-blocker)"
+                        placeholder="Drug Class / Enzyme Class"
                         value={editingMolecule.drug_class || ''}
                         onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_class: e.target.value })}
                         className={`w-full px-3 py-2 rounded-lg border text-sm ${
@@ -2450,7 +2551,7 @@ const startFlashcards = (chapterId?: string) => {
                       
                       <input
                         type="text"
-                        placeholder="Target Receptor (e.g., COX-2 enzyme)"
+                        placeholder="Target Receptor / Substrate"
                         value={editingMolecule.target_receptor || ''}
                         onChange={(e) => setEditingMolecule({ ...editingMolecule, target_receptor: e.target.value })}
                         className={`w-full px-3 py-2 rounded-lg border text-sm ${
@@ -2460,108 +2561,133 @@ const startFlashcards = (chapterId?: string) => {
                         } focus:outline-none focus:border-teal-500`}
                       />
                       
-                      <input
-                        type="text"
-                        placeholder="Route (e.g., Oral, IV, Topical)"
-                        value={editingMolecule.route_of_administration || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, route_of_administration: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
+                      {editingMolecule.molecule_type === 'drug' && (
+                        <input
+                          type="text"
+                          placeholder="Route (e.g., Oral, IV)"
+                          value={editingMolecule.route_of_administration || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, route_of_administration: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                      )}
                     </div>
                   </div>
 
-                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
-                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <input
-                        type="text"
-                        placeholder="Onset (e.g., 30min)"
-                        value={editingMolecule.onset_time || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, onset_time: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
+                  {/* PHARMACOKINETICS - Only for Drug */}
+                  {editingMolecule.molecule_type === 'drug' && (
+                    <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
                       
-                      <input
-                        type="text"
-                        placeholder="Peak (e.g., 1-2h)"
-                        value={editingMolecule.peak_time || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, peak_time: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
+                      <div className="grid grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          placeholder="Onset"
+                          value={editingMolecule.onset_time || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, onset_time: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                        
+                        <input
+                          type="text"
+                          placeholder="Peak"
+                          value={editingMolecule.peak_time || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, peak_time: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                        
+                        <input
+                          type="text"
+                          placeholder="Duration"
+                          value={editingMolecule.duration || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, duration: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                      </div>
                       
-                      <input
-                        type="text"
-                        placeholder="Duration (e.g., 4-6h)"
-                        value={editingMolecule.duration || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, duration: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
+                      <div className="grid grid-cols-2 gap-3 mt-3">
+                        <input
+                          type="text"
+                          placeholder="Metabolism"
+                          value={editingMolecule.metabolism || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, metabolism: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                        
+                        <input
+                          type="text"
+                          placeholder="Excretion"
+                          value={editingMolecule.excretion || ''}
+                          onChange={(e) => setEditingMolecule({ ...editingMolecule, excretion: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-gray-50 border-gray-200 text-gray-900'
+                          } focus:outline-none focus:border-teal-500`}
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <input
-                        type="text"
-                        placeholder="Metabolism (e.g., Hepatic CYP2C9)"
-                        value={editingMolecule.metabolism || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, metabolism: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
-                      
-                      <input
-                        type="text"
-                        placeholder="Excretion (e.g., Renal 80%)"
-                        value={editingMolecule.excretion || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, excretion: e.target.value })}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                        } focus:outline-none focus:border-teal-500`}
-                      />
-                    </div>
-                  </div>
+                  )}
 
-                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
-                    <textarea
-                      placeholder="List common and serious side effects..."
-                      value={editingMolecule.side_effects || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, side_effects: e.target.value })}
-                      rows={3}
-                      className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900'
-                      } focus:outline-none focus:border-teal-500`}
-                    />
-                  </div>
-                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
-                  <button
-                    onClick={saveMolecule}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                  >
-                    💾 Save Molecule
+                  {/* SIDE EFFECTS - Only for Drug */}
+                  {editingMolecule.molecule_type === 'drug' && (
+                    <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
+                      <textarea
+                        placeholder="List side effects..."
+                        value={editingMolecule.side_effects || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, side_effects: e.target.value })}
+                        rows={3}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                    </div>
+                  )}
+```
+
+## ENSUITE, DANS saveMolecule, AJOUTE:
+
+```javascript
+  molecule_type: editingMolecule.molecule_type || 'drug',
+  body_effect: editingMolecule.body_effect || null,
+```
+
+## RÉSULTAT:
+
+💊 **MÉDICAMENT:**
+- Name, Formula, SMILES, Image, Category, Function
+- Mechanism, Pharmacokinetics, Side Effects
+
+🧬 **ENZYME:**
+- Name, Image, Category, Function
+- Mechanism (class + target)
+
+⚗️ **MOLÉCULE:**
+- Name, Formula, Image, Category
+- Body Effect, Mechanism                    
+                      💾 Save Molecule
                   </button>
                   <button
                     onClick={() => {
