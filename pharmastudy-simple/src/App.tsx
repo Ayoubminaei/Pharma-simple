@@ -1503,17 +1503,17 @@ const saveMolecule = async () => {
                             {chapter.topics.length} topics • {chapter.topics.reduce((sum, t) => sum + t.molecules.length, 0)} molecules
                           </p>
                           
- <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-   <button
+ <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
                               onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
-                              className={`flex items-center gap-1 px-3 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-sm`}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-xs`}
                             >
                               <Edit2 className="w-3 h-3" />
                               Edit
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); exportChapterToPDF(chapter); }}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs"
                               title="Export to PDF"
                             >
                               <Download className="w-3 h-3" />
@@ -1521,7 +1521,7 @@ const saveMolecule = async () => {
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); shareChapter(chapter); }}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-green-100 hover:bg-green-200 text-green-700 text-sm"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded bg-green-100 hover:bg-green-200 text-green-700 text-xs"
                               title="Share chapter"
                             >
                               <Share2 className="w-3 h-3" />
@@ -1529,12 +1529,12 @@ const saveMolecule = async () => {
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 text-sm"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 text-xs"
                             >
                               <Trash2 className="w-3 h-3" />
                               Delete
                             </button>
-                          </div>
+                          </div> 
                         </div>
                       ))}
                     </div>
