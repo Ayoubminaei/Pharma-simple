@@ -1503,8 +1503,8 @@ const saveMolecule = async () => {
                             {chapter.topics.length} topics • {chapter.topics.reduce((sum, t) => sum + t.molecules.length, 0)} molecules
                           </p>
                           
- <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                            <button
+ <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+   <button
                               onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
                               className={`flex items-center gap-1 px-3 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-sm`}
                             >
