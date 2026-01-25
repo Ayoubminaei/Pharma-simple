@@ -565,10 +565,6 @@ const saveMolecule = async () => {
       return;
     }
     
-    if (!editingMolecule.formula?.trim()) {
-      alert('Please enter a formula');
-      return;
-    }
     
     try {
  const moleculeData = {
