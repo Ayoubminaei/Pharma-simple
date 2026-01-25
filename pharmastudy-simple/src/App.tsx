@@ -799,24 +799,34 @@ const saveMolecule = async () => {
     setQuizActive(true);
   };
   // Flashcard functions
-  const startFlashcards = () => {
-    const allMolecules = chapters.flatMap(c => 
-      c.topics.flatMap(t => t.molecules)
-    ).filter(m => m.image_url);
+const startFlashcards = (chapterId?: string) => {
+    let molecules;
     
-    if (allMolecules.length === 0) {
+    if (chapterId) {
+      // Flashcards for specific chapter
+      const chapter = chapters.find(c => c.id === chapterId);
+      if (!chapter) return;
+      
+      molecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url);
+    } else {
+      // All molecules
+      molecules = chapters.flatMap(c => 
+        c.topics.flatMap(t => t.molecules)
+      ).filter(m => m.image_url);
+    }
+    
+    if (molecules.length === 0) {
       alert('Add molecules with images first!');
       return;
     }
     
-    const shuffled = [...allMolecules].sort(() => Math.random() - 0.5);
+    const shuffled = [...molecules].sort(() => Math.random() - 0.5);
     setFlashcards(shuffled);
     setCurrentFlashcardIndex(0);
     setShowFlashcardAnswer(false);
     setFlashcardStats({ correct: 0, wrong: 0 });
     setFlashcardMode(true);
   };
-
   const revealFlashcardAnswer = () => {
     setShowFlashcardAnswer(true);
   };
@@ -1884,22 +1894,66 @@ const saveMolecule = async () => {
             <div>
               <h1 className="text-3xl font-bold mb-6">🎴 Flashcards</h1>
               
-              {!flashcardMode ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <Sparkles className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  <h3 className="text-2xl font-bold mb-4">Learn with Flashcards!</h3>
-                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    See the molecule image, guess the name and function
-                  </p>
-                  <button
-                    onClick={startFlashcards}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    <span>Start Flashcards</span>
-                  </button>
+{!flashcardMode ? (
+                <div>
+                  <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 text-center mb-6`}>
+                    <Sparkles className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <h3 className="text-2xl font-bold mb-4">Learn with Flashcards!</h3>
+                    <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Choose a chapter to study, or practice all molecules
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div
+                      onClick={() => startFlashcards()}
+                      className={`${darkMode ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-700 hover:border-purple-500' : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:border-purple-400'} border-2 rounded-xl p-6 cursor-pointer transition-all hover:shadow-xl`}
+                    >
+                      <Sparkles className="w-12 h-12 text-purple-500 mb-3" />
+                      <h3 className="text-xl font-bold mb-2">🌟 All Chapters</h3>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Practice with all your molecules
+                      </p>
+                      <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        {chapters.flatMap(c => c.topics.flatMap(t => t.molecules)).filter(m => m.image_url).length} cards
+                      </p>
+                    </div>
+
+                    {chapters.map(chapter => {
+                      const moleculesWithImages = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url).length;
+                      
+                      if (moleculesWithImages === 0) return null;
+                      
+                      return (
+                        <div
+                          key={chapter.id}
+                          onClick={() => startFlashcards(chapter.id)}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750 border-gray-700 hover:border-blue-500' : 'bg-white hover:shadow-xl border-gray-200 hover:border-blue-400'} border-2 rounded-xl p-6 cursor-pointer transition-all`}
+                        >
+                          <BookOpen className="w-12 h-12 text-blue-500 mb-3" />
+                          <h3 className="text-xl font-bold mb-2">{chapter.name}</h3>
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {chapter.topics.length} topics
+                          </p>
+                          <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            {moleculesWithImages} cards available
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {chapters.flatMap(c => c.topics.flatMap(t => t.molecules)).filter(m => m.image_url).length === 0 && (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center mt-6`}>
+                      <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                      <h3 className="text-xl font-bold mb-2">No flashcards available</h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Add molecules with images to create flashcards!
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : currentFlashcardIndex < flashcards.length ? (
+) : currentFlashcardIndex < flashcards.length ? (
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-4xl mx-auto`}>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
