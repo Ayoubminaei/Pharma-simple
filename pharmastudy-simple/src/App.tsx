@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Edit2, Trash2, Search, PlayCircle, Brain, CheckCircle, XCircle, FlaskConical, Moon, Sun, Sparkles, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2, Download, Share2 } from 'lucide-react';import { supabase } from './supabase';
-
+import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Brain, PlayCircle, CheckCircle, XCircle, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2, Download, Share2 } from 'lucide-react';
+import { supabase } from './supabase';
 // Types
 interface User {
   id: string;
