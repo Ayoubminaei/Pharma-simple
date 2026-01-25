@@ -33,7 +33,9 @@ interface Molecule {
   excretion?: string;
   side_effects?: string;
   created_at?: string;
-}  // Mechanism fields
+}  
+
+// Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
   target_receptor?: string;
