@@ -20,6 +20,9 @@ interface Molecule {
   cas_number?: string;
   molecular_weight?: string;
   pubchem_cid?: string;
+  drug_category?: string;
+  primary_function?: string;
+}
   // Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
@@ -569,16 +572,18 @@ const saveMolecule = async () => {
     }
     
     try {
-      const moleculeData = {
-        name: editingMolecule.name.trim(),
-        smiles: editingMolecule.smiles || '',
-        formula: editingMolecule.formula.trim(),
-        description: editingMolecule.description || '',
-        image_url: editingMolecule.image_url || null,
-        molecular_weight: editingMolecule.molecular_weight || null,
-        cas_number: editingMolecule.cas_number || null,
-        pubchem_cid: editingMolecule.pubchem_cid || null
-      };
+ const moleculeData = {
+  name: editingMolecule.name.trim(),
+  smiles: editingMolecule.smiles || '',
+  formula: editingMolecule.formula.trim(),
+  description: editingMolecule.description || '',
+  image_url: editingMolecule.image_url || null,
+  molecular_weight: editingMolecule.molecular_weight || null,
+  cas_number: editingMolecule.cas_number || null,
+  pubchem_cid: editingMolecule.pubchem_cid || null,
+  drug_category: editingMolecule.drug_category || null,
+  primary_function: editingMolecule.primary_function || null
+};
 
       if (editingMolecule.id) {
         // UPDATE
@@ -1912,7 +1917,46 @@ const saveMolecule = async () => {
 
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      SMILES (optional)
+                      <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🏷️ Category
+                    </label>
+                    <select
+                      value={editingMolecule.drug_category || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_category: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                    >
+                      <option value="">Select category...</option>
+                      <option value="antibiotic">💊 Antibiotic</option>
+                      <option value="analgesic">🩹 Analgesic (Pain relief)</option>
+                      <option value="antiviral">🦠 Antiviral</option>
+                      <option value="cardiovascular">❤️ Cardiovascular</option>
+                      <option value="neurological">🧠 Neurological</option>
+                      <option value="antiinflammatory">🔥 Anti-inflammatory</option>
+                      <option value="other">📦 Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🎯 Primary Function
+                    </label>
+                    <input
+                      type="text"
+                      value={editingMolecule.primary_function || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, primary_function: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                      placeholder="e.g., Reduces fever and pain"
+                    />
+                  </div>                      SMILES (optional)
                     </label>
                     <input
                       type="text"
