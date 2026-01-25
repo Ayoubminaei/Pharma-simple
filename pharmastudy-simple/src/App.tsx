@@ -33,12 +33,12 @@ interface Molecule {
   excretion?: string;
   side_effects?: string;
   created_at?: string;
-}  
-
-// Mechanism fields
+  drug_category?: string;
+  primary_function?: string;
   drug_class?: string;
   route_of_administration?: string;
   target_receptor?: string;
+  mechanism_steps?: string;
   onset_time?: string;
   peak_time?: string;
   duration?: string;
@@ -46,7 +46,6 @@ interface Molecule {
   excretion?: string;
   side_effects?: string;
 }
-
 interface Topic {
   id: string;
   chapter_id: string;
