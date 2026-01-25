@@ -1387,22 +1387,24 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               </div>
 
-              <div className={`${darkMode ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-800' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6 mb-8`}>
+ <div className={`${darkMode ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-800' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'} border-2 rounded-xl p-6 mb-6`}>
                 <div className="flex items-start gap-4">
-                  <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <div className={`text-5xl ${darkMode ? 'text-purple-400' : 'text-purple-600'} flex-shrink-0`}>
+                    "
+                  </div>
                   <div>
-                    <h3 className="text-lg font-bold mb-2">🎉 Enhanced App Active!</h3>
-                    <ul className="space-y-1 text-sm">
-                      <li>✨ 3-level hierarchical navigation</li>
-                      <li>🔬 Full-screen molecule viewer with zoom</li>
-                      <li>🤖 Smart add wizard with AI generation</li>
-                      <li>⚙️ Mechanism of action tracking</li>
-                      <li>☁️ Cloud database sync</li>
-                    </ul>
+                    <p className={`text-lg italic mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      All things are poison, and nothing is without poison; the dosage alone makes it so a thing is not a poison.
+                    </p>
+                    <p className={`text-sm font-semibold ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                      — Paracelsus
+                    </p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>
+                      Swiss physician and alchemist (1493-1541)
+                    </p>
                   </div>
                 </div>
               </div>
-
               <h2 className="text-2xl font-bold mb-4">Recent Chapters</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {chapters.slice(0, 4).map(chapter => (
