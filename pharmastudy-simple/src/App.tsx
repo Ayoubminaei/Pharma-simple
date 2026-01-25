@@ -22,7 +22,6 @@ interface Molecule {
   pubchem_cid?: string;
   drug_category?: string;
   primary_function?: string;
-}
   // Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
