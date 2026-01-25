@@ -20,6 +20,20 @@ interface Molecule {
   cas_number?: string;
   molecular_weight?: string;
   pubchem_cid?: string;
+  // Nouveaux champs
+  drug_category?: string;
+  primary_function?: string;
+  drug_class?: string;
+  route_of_administration?: string;
+  target_receptor?: string;
+  mechanism_steps?: string;
+  onset_time?: string;
+  peak_time?: string;
+  duration?: string;
+  metabolism?: string;
+  excretion?: string;
+  side_effects?: string;
+}
   // Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
@@ -569,16 +583,28 @@ const saveMolecule = async () => {
     }
     
     try {
-      const moleculeData = {
-        name: editingMolecule.name.trim(),
-        smiles: editingMolecule.smiles || '',
-        formula: editingMolecule.formula.trim(),
-        description: editingMolecule.description || '',
-        image_url: editingMolecule.image_url || null,
-        molecular_weight: editingMolecule.molecular_weight || null,
-        cas_number: editingMolecule.cas_number || null,
-        pubchem_cid: editingMolecule.pubchem_cid || null
-      };
+const moleculeData = {
+  name: editingMolecule.name.trim(),
+  smiles: editingMolecule.smiles || '',
+  formula: editingMolecule.formula.trim(),
+  description: editingMolecule.description || '',
+  image_url: editingMolecule.image_url || null,
+  molecular_weight: editingMolecule.molecular_weight || null,
+  cas_number: editingMolecule.cas_number || null,
+  pubchem_cid: editingMolecule.pubchem_cid || null,
+  drug_category: editingMolecule.drug_category || null,
+  primary_function: editingMolecule.primary_function || null,
+  drug_class: editingMolecule.drug_class || null,
+  target_receptor: editingMolecule.target_receptor || null,
+  route_of_administration: editingMolecule.route_of_administration || null,
+  mechanism_steps: editingMolecule.mechanism_steps || null,
+  onset_time: editingMolecule.onset_time || null,
+  peak_time: editingMolecule.peak_time || null,
+  duration: editingMolecule.duration || null,
+  metabolism: editingMolecule.metabolism || null,
+  excretion: editingMolecule.excretion || null,
+  side_effects: editingMolecule.side_effects || null
+};
 
       if (editingMolecule.id) {
         // UPDATE
@@ -1907,7 +1933,46 @@ const saveMolecule = async () => {
                           className="w-full h-32 object-contain"
                         />
                       </div>
-                    )}
+                <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🏷️ Category
+                    </label>
+                    <select
+                      value={editingMolecule.drug_category || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_category: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                    >
+                      <option value="">Select category...</option>
+                      <option value="antibiotic">💊 Antibiotic</option>
+                      <option value="analgesic">🩹 Analgesic</option>
+                      <option value="antiviral">🦠 Antiviral</option>
+                      <option value="cardiovascular">❤️ Cardiovascular</option>
+                      <option value="neurological">🧠 Neurological</option>
+                      <option value="antiinflammatory">🔥 Anti-inflammatory</option>
+                      <option value="other">📦 Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🎯 Primary Function
+                    </label>
+                    <input
+                      type="text"
+                      value={editingMolecule.primary_function || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, primary_function: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                      placeholder="e.g., Reduces fever and pain"
+                    />
+                  </div>                    )}
                   </div>
 
                   <div>
@@ -1942,8 +2007,62 @@ const saveMolecule = async () => {
                     />
                   </div>
                 </div>
+<div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">⚙️ Mechanism of Action</h3>
+                    
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Drug Class (e.g., NSAID, Beta-blocker)"
+                        value={editingMolecule.drug_class || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_class: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Target Receptor (e.g., COX-2 enzyme)"
+                        value={editingMolecule.target_receptor || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, target_receptor: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                      />
+                      
+                      <textarea
+                        placeholder="Mechanism Steps (one per line)"
+                        value={editingMolecule.mechanism_steps || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, mechanism_steps: e.target.value })}
+                        rows={3}
+                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                      />
+                    </div>
+                  </div>
 
-                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
+                    <textarea
+                      placeholder="List side effects..."
+                      value={editingMolecule.side_effects || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, side_effects: e.target.value })}
+                      rows={2}
+                      className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                    />
+                  </div>                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                   <button
                     onClick={saveMolecule}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
