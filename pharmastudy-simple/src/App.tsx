@@ -38,9 +38,10 @@ interface Molecule {
   pubchem_cid?: string;
   drug_category?: string;
   primary_function?: string;
+  // Mechanism fields
   drug_class?: string;
-  target_receptor?: string;
   route_of_administration?: string;
+  target_receptor?: string;
   onset_time?: string;
   peak_time?: string;
   duration?: string;
@@ -48,8 +49,8 @@ interface Molecule {
   excretion?: string;
   side_effects?: string;
   molecule_type?: string; // 'drug' | 'enzyme' | 'molecule'
-  body_effect?: string; // For molecules - effect on body  
-}
+  body_effect?: string; // For molecules - effect on body
+  }
 
 interface Topic {
   id: string;
