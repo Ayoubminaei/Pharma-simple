@@ -2423,9 +2423,26 @@ const startFlashcards = (chapterId?: string) => {
                       } focus:outline-none`}
                       placeholder="e.g., Reduces fever and pain"
                     />
-                  </div>                      SMILES (optional)
-
-                      ```javascript
+                  </div>
+                      {/* SMILES - Only for Drug */}
+                  {editingMolecule.molecule_type === 'drug' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        SMILES (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editingMolecule.smiles || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, smiles: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 font-mono text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                      />
+                    </div>
+                  )}
+                      
                   {/* FORMULA - Only for Drug and Molecule */}
                   {editingMolecule.molecule_type !== 'enzyme' && (
                     <div>
