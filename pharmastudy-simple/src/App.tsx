@@ -116,7 +116,12 @@ export default function PharmaStudy() {
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
   const [quizActive, setQuizActive] = useState(false);
-
+  // Flashcard states
+  const [flashcardMode, setFlashcardMode] = useState(false);
+  const [flashcards, setFlashcards] = useState<Molecule[]>([]);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
+  const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
   // Check session on mount
   useEffect(() => {
     checkSession();
@@ -820,7 +825,47 @@ const moleculeData = {
     setQuizScore({ correct: 0, total: quizQuestions.length });
     setQuizActive(true);
   };
+  // Flashcard functions
+  const startFlashcards = () => {
+    const allMolecules = chapters.flatMap(c => 
+      c.topics.flatMap(t => t.molecules)
+    ).filter(m => m.image_url);
+    
+    if (allMolecules.length === 0) {
+      alert('You need molecules with images to use flashcard mode!');
+      return;
+    }
+    
+    const shuffled = [...allMolecules].sort(() => Math.random() - 0.5);
+    setFlashcards(shuffled);
+    setCurrentFlashcardIndex(0);
+    setShowFlashcardAnswer(false);
+    setFlashcardStats({ correct: 0, wrong: 0 });
+    setFlashcardMode(true);
+  };
 
+  const revealFlashcardAnswer = () => {
+    setShowFlashcardAnswer(true);
+  };
+
+  const markFlashcardCorrect = () => {
+    setFlashcardStats(prev => ({ ...prev, correct: prev.correct + 1 }));
+    nextFlashcard();
+  };
+
+  const markFlashcardWrong = () => {
+    setFlashcardStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
+    nextFlashcard();
+  };
+
+  const nextFlashcard = () => {
+    if (currentFlashcardIndex < flashcards.length - 1) {
+      setCurrentFlashcardIndex(prev => prev + 1);
+      setShowFlashcardAnswer(false);
+    } else {
+      setFlashcardMode(false);
+    }
+  };
   // Search
   const searchResults = chapters.flatMap(chapter =>
     chapter.topics.flatMap(topic =>
@@ -1073,7 +1118,17 @@ const moleculeData = {
               <Brain className="w-5 h-5" />
               <span className="font-medium">Quiz Mode</span>
             </button>
-          </nav>
+            <button
+              onClick={() => setActiveTab('flashcards')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'flashcards'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              <span className="font-medium">Flashcards</span>
+            </button>          </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-900 to-teal-900' : 'bg-gradient-to-br from-blue-50 to-teal-50'}`}>
@@ -1654,7 +1709,152 @@ const moleculeData = {
                       {currentQuestionIndex < quizQuestions.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </button>
                   )}
+                  {/* FLASHCARDS MODE */}
+          {activeTab === 'flashcards' && (
+            <div>
+              <h1 className="text-3xl font-bold mb-6">🎴 Flashcards</h1>
+              
+              {!flashcardMode ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                  <Sparkles className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                  <h3 className="text-2xl font-bold mb-4">Learn with Flashcards!</h3>
+                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    See the molecule image, guess the name and function
+                  </p>
+                  <button
+                    onClick={startFlashcards}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    <span>Start Flashcards</span>
+                  </button>
                 </div>
+              ) : currentFlashcardIndex < flashcards.length ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-4xl mx-auto`}>
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Card {currentFlashcardIndex + 1} of {flashcards.length}
+                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-medium text-green-600">
+                          ✅ {flashcardStats.correct}
+                        </span>
+                        <span className="text-sm font-medium text-red-600">
+                          ❌ {flashcardStats.wrong}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                        style={{ width: `${((currentFlashcardIndex + 1) / flashcards.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-8 mb-6 flex items-center justify-center" style={{ minHeight: '300px' }}>
+                    {flashcards[currentFlashcardIndex].image_url ? (
+                      <img 
+                        src={flashcards[currentFlashcardIndex].image_url} 
+                        alt="Molecule"
+                        className="max-h-64 object-contain"
+                      />
+                    ) : (
+                      <FlaskConical className="w-32 h-32 text-gray-400" />
+                    )}
+                  </div>
+
+                  {!showFlashcardAnswer ? (
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-bold mb-4">🤔 What is this molecule?</h3>
+                      <button
+                        onClick={revealFlashcardAnswer}
+                        className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+                      >
+                        Reveal Answer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className={`${darkMode ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-800' : 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200'} rounded-xl p-6`}>
+                        <h3 className="text-2xl font-bold mb-4">
+                          {flashcards[currentFlashcardIndex].name}
+                        </h3>
+                        
+                        {flashcards[currentFlashcardIndex].formula && (
+                          <p className={`text-lg mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <strong>Formula:</strong> {flashcards[currentFlashcardIndex].formula}
+                          </p>
+                        )}
+
+                        {flashcards[currentFlashcardIndex].drug_category && (
+                          <p className="mb-3">
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                              {flashcards[currentFlashcardIndex].drug_category}
+                            </span>
+                          </p>
+                        )}
+
+                        {flashcards[currentFlashcardIndex].primary_function && (
+                          <div className="mt-4">
+                            <strong className="block mb-2">🎯 Function:</strong>
+                            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {flashcards[currentFlashcardIndex].primary_function}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={markFlashcardCorrect}
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <CheckCircle className="w-5 h-5" />
+                            <span>I Got It Right!</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={markFlashcardWrong}
+                          className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <XCircle className="w-5 h-5" />
+                            <span>I Need to Study</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                  <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
+                    flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong) >= 0.7 
+                      ? 'bg-green-100 dark:bg-green-900' 
+                      : 'bg-yellow-100 dark:bg-yellow-900'
+                  }`}>
+                    <span className="text-4xl font-bold">
+                      {Math.round((flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong)) * 100)}%
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-bold mb-4">Flashcards Complete!</h2>
+                  <p className={`text-xl mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Correct: {flashcardStats.correct} | Wrong: {flashcardStats.wrong}
+                  </p>
+                  <button
+                    onClick={startFlashcards}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    <span>Start Again</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}                </div>
               )}
             </div>
           )}
