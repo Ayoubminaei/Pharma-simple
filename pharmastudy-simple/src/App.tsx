@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Brain, PlayCircle, CheckCircle, XCircle, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
-import { supabase } from './supabase';
+import { BookOpen, Plus, Edit2, Trash2, Search, PlayCircle, Brain, CheckCircle, XCircle, FlaskConical, Moon, Sun, Sparkles, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2, Download, Share2 } from 'lucide-react';import { supabase } from './supabase';
 
 // Types
 interface User {
@@ -840,7 +839,184 @@ const saveMolecule = async () => {
       setFlashcardMode(false);
     }
   };
-  // Search
+  // PDF Export function
+  const exportChapterToPDF = async (chapter: Chapter) => {
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      await import('jspdf-autotable');
+      
+      const doc = new jsPDF() as any;
+      let yPos = 20;
+      
+      // Title
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(chapter.name, 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, yPos);
+      yPos += 15;
+      
+      // For each topic
+      chapter.topics.forEach((topic, topicIdx) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${topicIdx + 1}. ${topic.name}`, 20, yPos);
+        yPos += 10;
+        
+        // Molecules
+        topic.molecules.forEach((mol, molIdx) => {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${topicIdx + 1}.${molIdx + 1} ${mol.name}`, 25, yPos);
+          yPos += 7;
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          
+          if (mol.formula) {
+            doc.text(`Formula: ${mol.formula}`, 30, yPos);
+            yPos += 6;
+          }
+          
+          if (mol.drug_category) {
+            doc.text(`Category: ${mol.drug_category}`, 30, yPos);
+            yPos += 6;
+          }
+          
+          if (mol.primary_function) {
+            const lines = doc.splitTextToSize(`Function: ${mol.primary_function}`, 160);
+            doc.text(lines, 30, yPos);
+            yPos += lines.length * 5 + 3;
+          }
+          
+          if (mol.description) {
+            const lines = doc.splitTextToSize(mol.description, 160);
+            doc.text(lines, 30, yPos);
+            yPos += lines.length * 5 + 5;
+          }
+          
+          yPos += 5;
+        });
+        
+        yPos += 5;
+      });
+      
+      doc.save(`${chapter.name}.pdf`);
+      alert('✅ PDF exported successfully!');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('Failed to export PDF');
+    }
+  };
+
+  // Share chapter
+  const shareChapter = async (chapter: Chapter) => {
+    const shareData = {
+      id: chapter.id,
+      name: chapter.name,
+      topics: chapter.topics.map(t => ({
+        name: t.name,
+        molecules: t.molecules.map(m => ({
+          name: m.name,
+          formula: m.formula,
+          description: m.description,
+          image_url: m.image_url,
+          drug_category: m.drug_category,
+          primary_function: m.primary_function
+        }))
+      }))
+    };
+    
+    const jsonString = JSON.stringify(shareData);
+    const base64 = btoa(unescape(encodeURIComponent(jsonString)));
+    const shareUrl = `${window.location.origin}/?import=${base64}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('✅ Share link copied!\n\nAnyone with this link can import your chapter.');
+    } catch (err) {
+      prompt('Copy this link to share:', shareUrl);
+    }
+  };
+
+  // Import chapter
+  useEffect(() => {
+    const checkImport = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const importData = urlParams.get('import');
+      
+      if (importData && user) {
+        try {
+          const jsonString = decodeURIComponent(escape(atob(importData)));
+          const chapterData = JSON.parse(jsonString);
+          
+          if (confirm(`Import chapter "${chapterData.name}"?`)) {
+            await importSharedChapter(chapterData);
+          }
+          
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (err) {
+          console.error('Import error:', err);
+        }
+      }
+    };
+    
+    if (user) {
+      checkImport();
+    }
+  }, [user]);
+
+  const importSharedChapter = async (chapterData: any) => {
+    if (!user) return;
+    
+    try {
+      const { data: newChapter, error: chapterError } = await supabase
+        .from('chapters')
+        .insert([{ name: chapterData.name + ' (Imported)', user_id: user.id }])
+        .select()
+        .single();
+      
+      if (chapterError) throw chapterError;
+      
+      for (const topicData of chapterData.topics) {
+        const { data: newTopic, error: topicError } = await supabase
+          .from('topics')
+          .insert([{ name: topicData.name, chapter_id: newChapter.id }])
+          .select()
+          .single();
+        
+        if (topicError) throw topicError;
+        
+        for (const moleculeData of topicData.molecules) {
+          await supabase
+            .from('molecules')
+            .insert([{
+              topic_id: newTopic.id,
+              ...moleculeData
+            }]);
+        }
+      }
+      
+      await loadChapters();
+      alert('✅ Chapter imported successfully!');
+    } catch (error) {
+      console.error('Import error:', error);
+      alert('Failed to import chapter');
+    }
+  };  // Search
   const searchResults = chapters.flatMap(chapter =>
     chapter.topics.flatMap(topic =>
       topic.molecules
@@ -1327,13 +1503,29 @@ const saveMolecule = async () => {
                             {chapter.topics.length} topics • {chapter.topics.reduce((sum, t) => sum + t.molecules.length, 0)} molecules
                           </p>
                           
-                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+ <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
                               className={`flex items-center gap-1 px-3 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} text-sm`}
                             >
                               <Edit2 className="w-3 h-3" />
                               Edit
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); exportChapterToPDF(chapter); }}
+                              className="flex items-center gap-1 px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm"
+                              title="Export to PDF"
+                            >
+                              <Download className="w-3 h-3" />
+                              PDF
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); shareChapter(chapter); }}
+                              className="flex items-center gap-1 px-3 py-1 rounded bg-green-100 hover:bg-green-200 text-green-700 text-sm"
+                              title="Share chapter"
+                            >
+                              <Share2 className="w-3 h-3" />
+                              Share
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
