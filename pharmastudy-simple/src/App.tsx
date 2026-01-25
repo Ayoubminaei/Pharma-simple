@@ -2664,28 +2664,7 @@ const startFlashcards = (chapterId?: string) => {
                       />
                     </div>
                   )}
-```
-
-## ENSUITE, DANS saveMolecule, AJOUTE:
-
-```javascript
-  molecule_type: editingMolecule.molecule_type || 'drug',
-  body_effect: editingMolecule.body_effect || null,
-```
-
-## RÉSULTAT:
-
-💊 **MÉDICAMENT:**
-- Name, Formula, SMILES, Image, Category, Function
-- Mechanism, Pharmacokinetics, Side Effects
-
-🧬 **ENZYME:**
-- Name, Image, Category, Function
-- Mechanism (class + target)
-
-⚗️ **MOLÉCULE:**
-- Name, Formula, Image, Category
-- Body Effect, Mechanism                    
+                
                       💾 Save Molecule
                   </button>
                   <button
