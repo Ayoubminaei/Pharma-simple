@@ -20,13 +20,10 @@ interface Molecule {
   cas_number?: string;
   molecular_weight?: string;
   pubchem_cid?: string;
-  // Nouveaux champs
-  drug_category?: string;
-  primary_function?: string;
+  // Mechanism fields
   drug_class?: string;
   route_of_administration?: string;
   target_receptor?: string;
-  mechanism_steps?: string;
   onset_time?: string;
   peak_time?: string;
   duration?: string;
@@ -105,12 +102,7 @@ export default function PharmaStudy() {
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
   const [quizActive, setQuizActive] = useState(false);
-  // Flashcard states
-  const [flashcardMode, setFlashcardMode] = useState(false);
-  const [flashcards, setFlashcards] = useState<Molecule[]>([]);
-  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
-  const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
-  const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
+
   // Check session on mount
   useEffect(() => {
     checkSession();
@@ -577,28 +569,16 @@ const saveMolecule = async () => {
     }
     
     try {
-const moleculeData = {
-  name: editingMolecule.name.trim(),
-  smiles: editingMolecule.smiles || '',
-  formula: editingMolecule.formula.trim(),
-  description: editingMolecule.description || '',
-  image_url: editingMolecule.image_url || null,
-  molecular_weight: editingMolecule.molecular_weight || null,
-  cas_number: editingMolecule.cas_number || null,
-  pubchem_cid: editingMolecule.pubchem_cid || null,
-  drug_category: editingMolecule.drug_category || null,
-  primary_function: editingMolecule.primary_function || null,
-  drug_class: editingMolecule.drug_class || null,
-  target_receptor: editingMolecule.target_receptor || null,
-  route_of_administration: editingMolecule.route_of_administration || null,
-  mechanism_steps: editingMolecule.mechanism_steps || null,
-  onset_time: editingMolecule.onset_time || null,
-  peak_time: editingMolecule.peak_time || null,
-  duration: editingMolecule.duration || null,
-  metabolism: editingMolecule.metabolism || null,
-  excretion: editingMolecule.excretion || null,
-  side_effects: editingMolecule.side_effects || null
-};
+      const moleculeData = {
+        name: editingMolecule.name.trim(),
+        smiles: editingMolecule.smiles || '',
+        formula: editingMolecule.formula.trim(),
+        description: editingMolecule.description || '',
+        image_url: editingMolecule.image_url || null,
+        molecular_weight: editingMolecule.molecular_weight || null,
+        cas_number: editingMolecule.cas_number || null,
+        pubchem_cid: editingMolecule.pubchem_cid || null
+      };
 
       if (editingMolecule.id) {
         // UPDATE
@@ -814,47 +794,7 @@ const moleculeData = {
     setQuizScore({ correct: 0, total: quizQuestions.length });
     setQuizActive(true);
   };
-  // Flashcard functions
-  const startFlashcards = () => {
-    const allMolecules = chapters.flatMap(c => 
-      c.topics.flatMap(t => t.molecules)
-    ).filter(m => m.image_url);
-    
-    if (allMolecules.length === 0) {
-      alert('You need molecules with images to use flashcard mode!');
-      return;
-    }
-    
-    const shuffled = [...allMolecules].sort(() => Math.random() - 0.5);
-    setFlashcards(shuffled);
-    setCurrentFlashcardIndex(0);
-    setShowFlashcardAnswer(false);
-    setFlashcardStats({ correct: 0, wrong: 0 });
-    setFlashcardMode(true);
-  };
 
-  const revealFlashcardAnswer = () => {
-    setShowFlashcardAnswer(true);
-  };
-
-  const markFlashcardCorrect = () => {
-    setFlashcardStats(prev => ({ ...prev, correct: prev.correct + 1 }));
-    nextFlashcard();
-  };
-
-  const markFlashcardWrong = () => {
-    setFlashcardStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
-    nextFlashcard();
-  };
-
-  const nextFlashcard = () => {
-    if (currentFlashcardIndex < flashcards.length - 1) {
-      setCurrentFlashcardIndex(prev => prev + 1);
-      setShowFlashcardAnswer(false);
-    } else {
-      setFlashcardMode(false);
-    }
-  };
   // Search
   const searchResults = chapters.flatMap(chapter =>
     chapter.topics.flatMap(topic =>
@@ -1107,17 +1047,7 @@ const moleculeData = {
               <Brain className="w-5 h-5" />
               <span className="font-medium">Quiz Mode</span>
             </button>
-            <button
-              onClick={() => setActiveTab('flashcards')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeTab === 'flashcards'
-                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
-                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <Sparkles className="w-5 h-5" />
-              <span className="font-medium">Flashcards</span>
-            </button>          </nav>
+          </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-900 to-teal-900' : 'bg-gradient-to-br from-blue-50 to-teal-50'}`}>
@@ -1698,152 +1628,7 @@ const moleculeData = {
                       {currentQuestionIndex < quizQuestions.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </button>
                   )}
-                  {/* FLASHCARDS MODE */}
-          {activeTab === 'flashcards' && (
-            <div>
-              <h1 className="text-3xl font-bold mb-6">🎴 Flashcards</h1>
-              
-              {!flashcardMode ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <Sparkles className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  <h3 className="text-2xl font-bold mb-4">Learn with Flashcards!</h3>
-                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    See the molecule image, guess the name and function
-                  </p>
-                  <button
-                    onClick={startFlashcards}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    <span>Start Flashcards</span>
-                  </button>
                 </div>
-              ) : currentFlashcardIndex < flashcards.length ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-4xl mx-auto`}>
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Card {currentFlashcardIndex + 1} of {flashcards.length}
-                      </span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-green-600">
-                          ✅ {flashcardStats.correct}
-                        </span>
-                        <span className="text-sm font-medium text-red-600">
-                          ❌ {flashcardStats.wrong}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
-                        style={{ width: `${((currentFlashcardIndex + 1) / flashcards.length) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-8 mb-6 flex items-center justify-center" style={{ minHeight: '300px' }}>
-                    {flashcards[currentFlashcardIndex].image_url ? (
-                      <img 
-                        src={flashcards[currentFlashcardIndex].image_url} 
-                        alt="Molecule"
-                        className="max-h-64 object-contain"
-                      />
-                    ) : (
-                      <FlaskConical className="w-32 h-32 text-gray-400" />
-                    )}
-                  </div>
-
-                  {!showFlashcardAnswer ? (
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-bold mb-4">🤔 What is this molecule?</h3>
-                      <button
-                        onClick={revealFlashcardAnswer}
-                        className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                      >
-                        Reveal Answer
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className={`${darkMode ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-800' : 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200'} rounded-xl p-6`}>
-                        <h3 className="text-2xl font-bold mb-4">
-                          {flashcards[currentFlashcardIndex].name}
-                        </h3>
-                        
-                        {flashcards[currentFlashcardIndex].formula && (
-                          <p className={`text-lg mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            <strong>Formula:</strong> {flashcards[currentFlashcardIndex].formula}
-                          </p>
-                        )}
-
-                        {flashcards[currentFlashcardIndex].drug_category && (
-                          <p className="mb-3">
-                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
-                              {flashcards[currentFlashcardIndex].drug_category}
-                            </span>
-                          </p>
-                        )}
-
-                        {flashcards[currentFlashcardIndex].primary_function && (
-                          <div className="mt-4">
-                            <strong className="block mb-2">🎯 Function:</strong>
-                            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {flashcards[currentFlashcardIndex].primary_function}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={markFlashcardCorrect}
-                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <CheckCircle className="w-5 h-5" />
-                            <span>I Got It Right!</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={markFlashcardWrong}
-                          className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <XCircle className="w-5 h-5" />
-                            <span>I Need to Study</span>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                    flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong) >= 0.7 
-                      ? 'bg-green-100 dark:bg-green-900' 
-                      : 'bg-yellow-100 dark:bg-yellow-900'
-                  }`}>
-                    <span className="text-4xl font-bold">
-                      {Math.round((flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong)) * 100)}%
-                    </span>
-                  </div>
-                  <h2 className="text-3xl font-bold mb-4">Flashcards Complete!</h2>
-                  <p className={`text-xl mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Correct: {flashcardStats.correct} | Wrong: {flashcardStats.wrong}
-                  </p>
-                  <button
-                    onClick={startFlashcards}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    <span>Start Again</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}                </div>
               )}
             </div>
           )}
@@ -2122,46 +1907,7 @@ const moleculeData = {
                           className="w-full h-32 object-contain"
                         />
                       </div>
-                <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      🏷️ Category
-                    </label>
-                    <select
-                      value={editingMolecule.drug_category || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_category: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                    >
-                      <option value="">Select category...</option>
-                      <option value="antibiotic">💊 Antibiotic</option>
-                      <option value="analgesic">🩹 Analgesic</option>
-                      <option value="antiviral">🦠 Antiviral</option>
-                      <option value="cardiovascular">❤️ Cardiovascular</option>
-                      <option value="neurological">🧠 Neurological</option>
-                      <option value="antiinflammatory">🔥 Anti-inflammatory</option>
-                      <option value="other">📦 Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      🎯 Primary Function
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.primary_function || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, primary_function: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="e.g., Reduces fever and pain"
-                    />
-                  </div>                    )}
+                    )}
                   </div>
 
                   <div>
@@ -2196,62 +1942,8 @@ const moleculeData = {
                     />
                   </div>
                 </div>
-<div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">⚙️ Mechanism of Action</h3>
-                    
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        placeholder="Drug Class (e.g., NSAID, Beta-blocker)"
-                        value={editingMolecule.drug_class || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_class: e.target.value })}
-                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                        } focus:outline-none`}
-                      />
-                      
-                      <input
-                        type="text"
-                        placeholder="Target Receptor (e.g., COX-2 enzyme)"
-                        value={editingMolecule.target_receptor || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, target_receptor: e.target.value })}
-                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                        } focus:outline-none`}
-                      />
-                      
-                      <textarea
-                        placeholder="Mechanism Steps (one per line)"
-                        value={editingMolecule.mechanism_steps || ''}
-                        onChange={(e) => setEditingMolecule({ ...editingMolecule, mechanism_steps: e.target.value })}
-                        rows={3}
-                        className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
-                          darkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                        } focus:outline-none`}
-                      />
-                    </div>
-                  </div>
 
-                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
-                    <textarea
-                      placeholder="List side effects..."
-                      value={editingMolecule.side_effects || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, side_effects: e.target.value })}
-                      rows={2}
-                      className={`w-full px-4 py-2 rounded-lg border-2 text-sm ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                    />
-                  </div>                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
+                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                   <button
                     onClick={saveMolecule}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
