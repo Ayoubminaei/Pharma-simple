@@ -46,6 +46,7 @@ interface Molecule {
   excretion?: string;
   side_effects?: string;
 }
+
 interface Topic {
   id: string;
   chapter_id: string;
