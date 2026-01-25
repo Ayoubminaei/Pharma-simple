@@ -555,139 +555,110 @@ Verify all information with official drug references.`;
     setWizardStep('edit');
   };
 
- // FIX FOR SAVING MOLECULES - REPLACE saveMolecule FUNCTION IN PART 2
-// Find the saveMolecule function (starts with: const saveMolecule = async () => {)
-// Replace the ENTIRE function with this:
+const saveMolecule = async () => {
+  if (!selectedChapter || !selectedTopic || !editingMolecule) return;
+  
+  if (!editingMolecule.name || !editingMolecule.name.trim()) {
+    alert('Please enter a molecule name');
+    return;
+  }
+  
+  if (!editingMolecule.formula || !editingMolecule.formula.trim()) {
+    alert('Please enter a formula');
+    return;
+  }
+  
+  try {
+    if (editingMolecule.id) {
+      const { error } = await supabase
+        .from('molecules')
+        .update({
+          name: editingMolecule.name.trim(),
+          smiles: editingMolecule.smiles || '',
+          formula: editingMolecule.formula.trim(),
+          description: editingMolecule.description || '',
+          molecular_weight: editingMolecule.molecular_weight || null,
+          cas_number: editingMolecule.cas_number || null,
+          pubchem_cid: editingMolecule.pubchem_cid || null,
+          image_url: editingMolecule.image_url || null
+        })
+        .eq('id', editingMolecule.id);
 
-  const saveMolecule = async () => {
-    if (!selectedChapter || !selectedTopic || !editingMolecule) return;
-    
-    // Validate required fields
-    if (!editingMolecule.name || !editingMolecule.name.trim()) {
-      alert('Please enter a molecule name');
-      return;
-    }
-    
-    if (!editingMolecule.formula || !editingMolecule.formula.trim()) {
-      alert('Please enter a molecular formula');
-      return;
-    }
-    
-    try {
-      // Check if this is an UPDATE (has ID) or INSERT (no ID)
-      if (editingMolecule.id) {
-        // UPDATE existing molecule
-        const { error } = await supabase
-          .from('molecules')
-          .update({
-            name: editingMolecule.name.trim(),
-            smiles: editingMolecule.smiles || '',
-            formula: editingMolecule.formula.trim(),
-            description: editingMolecule.description || '',
-            molecular_weight: editingMolecule.molecular_weight || null,
-            cas_number: editingMolecule.cas_number || null,
-            pubchem_cid: editingMolecule.pubchem_cid || null,
-            image_url: editingMolecule.image_url || null,
-            drug_class: editingMolecule.drug_class || null,
-            route_of_administration: editingMolecule.route_of_administration || null,
-            target_receptor: editingMolecule.target_receptor || null,
-            onset_time: editingMolecule.onset_time || null,
-            peak_time: editingMolecule.peak_time || null,
-            duration: editingMolecule.duration || null,
-            metabolism: editingMolecule.metabolism || null,
-            excretion: editingMolecule.excretion || null,
-            side_effects: editingMolecule.side_effects || null
-          })
-          .eq('id', editingMolecule.id);
+      if (error) throw error;
 
-        if (error) throw error;
+      const updatedTopic = {
+        ...selectedTopic,
+        molecules: selectedTopic.molecules.map(m => 
+          m.id === editingMolecule.id ? editingMolecule : m
+        )
+      };
+      
+      const updatedChapter = {
+        ...selectedChapter,
+        topics: selectedChapter.topics.map(t => 
+          t.id === selectedTopic.id ? updatedTopic : t
+        )
+      };
+      
+      setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
+      setSelectedChapter(updatedChapter);
+      setSelectedTopic(updatedTopic);
+      
+      if (viewingMolecule?.id === editingMolecule.id) {
+        setViewingMolecule(editingMolecule);
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('molecules')
+        .insert([{
+          topic_id: selectedTopic.id,
+          name: editingMolecule.name.trim(),
+          smiles: editingMolecule.smiles || '',
+          formula: editingMolecule.formula.trim(),
+          description: editingMolecule.description || '',
+          molecular_weight: editingMolecule.molecular_weight || null,
+          cas_number: editingMolecule.cas_number || null,
+          pubchem_cid: editingMolecule.pubchem_cid || null,
+          image_url: editingMolecule.image_url || null
+        }])
+        .select()
+        .single();
 
-        const updatedTopic = {
-          ...selectedTopic,
-          molecules: selectedTopic.molecules.map(m => 
-            m.id === editingMolecule.id ? editingMolecule : m
-          )
-        };
-        
-        const updatedChapter = {
-          ...selectedChapter,
-          topics: selectedChapter.topics.map(t => 
-            t.id === selectedTopic.id ? updatedTopic : t
-          )
-        };
-        
-        setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
-        setSelectedChapter(updatedChapter);
-        setSelectedTopic(updatedTopic);
-        
-        if (viewingMolecule?.id === editingMolecule.id) {
-          setViewingMolecule(editingMolecule);
-        }
-      } else {
-        // INSERT new molecule
-        const { data, error } = await supabase
-          .from('molecules')
-          .insert([{
-            topic_id: selectedTopic.id,
-            name: editingMolecule.name.trim(),
-            smiles: editingMolecule.smiles || '',
-            formula: editingMolecule.formula.trim(),
-            description: editingMolecule.description || '',
-            molecular_weight: editingMolecule.molecular_weight || null,
-            cas_number: editingMolecule.cas_number || null,
-            pubchem_cid: editingMolecule.pubchem_cid || null,
-            image_url: editingMolecule.image_url || null,
-            drug_class: editingMolecule.drug_class || null,
-            route_of_administration: editingMolecule.route_of_administration || null,
-            target_receptor: editingMolecule.target_receptor || null,
-            onset_time: editingMolecule.onset_time || null,
-            peak_time: editingMolecule.peak_time || null,
-            duration: editingMolecule.duration || null,
-            metabolism: editingMolecule.metabolism || null,
-            excretion: editingMolecule.excretion || null,
-            side_effects: editingMolecule.side_effects || null
-          }])
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-
-        if (!data) {
-          throw new Error('No data returned from insert');
-        }
-
-        const updatedTopic = {
-          ...selectedTopic,
-          molecules: [...selectedTopic.molecules, data]
-        };
-        
-        const updatedChapter = {
-          ...selectedChapter,
-          topics: selectedChapter.topics.map(t => 
-            t.id === selectedTopic.id ? updatedTopic : t
-          )
-        };
-        
-        setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
-        setSelectedChapter(updatedChapter);
-        setSelectedTopic(updatedTopic);
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
       }
 
-      // Success - close wizard
-      setShowAddWizard(false);
-      setEditingMolecule(null);
-      setWizardName('');
-      setWizardStep('name');
+      if (!data) throw new Error('No data returned');
+
+      const updatedTopic = {
+        ...selectedTopic,
+        molecules: [...selectedTopic.molecules, data]
+      };
       
-      alert('✅ Molecule saved successfully!');
-    } catch (error: any) {
-      console.error('Error saving molecule:', error);
-      alert(`Failed to save molecule: ${error.message || 'Unknown error'}`);
+      const updatedChapter = {
+        ...selectedChapter,
+        topics: selectedChapter.topics.map(t => 
+          t.id === selectedTopic.id ? updatedTopic : t
+        )
+      };
+      
+      setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
+      setSelectedChapter(updatedChapter);
+      setSelectedTopic(updatedTopic);
     }
-  };        
+
+    setShowAddWizard(false);
+    setEditingMolecule(null);
+    setWizardName('');
+    setWizardStep('name');
+    
+    alert('✅ Molecule saved!');
+  } catch (error: any) {
+    console.error('Save error:', error);
+    alert(`Failed: ${error.message}`);
+  }
+};
         const updatedChapter = {
           ...selectedChapter,
           topics: selectedChapter.topics.map(t => 
@@ -1939,149 +1910,131 @@ Verify all information with official drug references.`;
                 </p>
               </div>
             )}
+{wizardStep === 'edit' && editingMolecule && (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">Edit: {editingMolecule.name}</h2>
+    
+    <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto">
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Name *
+        </label>
+        <input
+          type="text"
+          value={editingMolecule.name}
+          onChange={(e) => setEditingMolecule({ ...editingMolecule, name: e.target.value })}
+          className={`w-full px-4 py-2 rounded-lg border-2 ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          required
+        />
+      </div>
 
-            // REPLACE THE WIZARD 'edit' STEP IN PART 3B
-// Find the section that starts with: {wizardStep === 'edit' && editingMolecule && (
-// Replace EVERYTHING from that line until the closing )}
-// With this code:
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Formula *
+        </label>
+        <input
+          type="text"
+          value={editingMolecule.formula}
+          onChange={(e) => setEditingMolecule({ ...editingMolecule, formula: e.target.value })}
+          className={`w-full px-4 py-2 rounded-lg border-2 ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          placeholder="e.g., C₉H₈O₄"
+          required
+        />
+      </div>
 
-            {wizardStep === 'edit' && editingMolecule && (
-              <div className="p-6">
-                <h2 className="text-2xl font-bold mb-4">Edit: {editingMolecule.name}</h2>
-                
-                <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto">
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.name}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, name: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Formula *
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.formula}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, formula: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="e.g., C₉H₈O₄"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Image URL
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.image_url || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, image_url: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="Paste image URL here (from PubChem, Google, etc.)"
-                    />
-                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      💡 Tip: Right-click any image online → "Copy image address" → Paste here
-                    </p>
-                    {editingMolecule.image_url && (
-                      <div className="mt-2 bg-white rounded-lg p-2">
-                        <img 
-                          src={editingMolecule.image_url} 
-                          alt="Preview"
-                          className="w-full h-32 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      SMILES (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.smiles || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, smiles: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 font-mono text-sm ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="e.g., CC(=O)OC1=CC=CC=C1C(=O)O"
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Description
-                    </label>
-                    <textarea
-                      value={editingMolecule.description || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, description: e.target.value })}
-                      rows={10}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="Add description, mechanism of action, uses..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={saveMolecule}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                  >
-                    Save Molecule
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddWizard(false);
-                      setEditingMolecule(null);
-                      setWizardName('');
-                      setWizardStep('name');
-                    }}
-                    className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}                    className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Image URL
+        </label>
+        <input
+          type="text"
+          value={editingMolecule.image_url || ''}
+          onChange={(e) => setEditingMolecule({ ...editingMolecule, image_url: e.target.value })}
+          className={`w-full px-4 py-2 rounded-lg border-2 ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          placeholder="Paste image URL here"
+        />
+        <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+          💡 Right-click any image online → Copy image address → Paste here
+        </p>
+        {editingMolecule.image_url && (
+          <div className="mt-2 bg-white rounded-lg p-2">
+            <img 
+              src={editingMolecule.image_url} 
+              alt="Preview"
+              className="w-full h-32 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          SMILES (optional)
+        </label>
+        <input
+          type="text"
+          value={editingMolecule.smiles || ''}
+          onChange={(e) => setEditingMolecule({ ...editingMolecule, smiles: e.target.value })}
+          className={`w-full px-4 py-2 rounded-lg border-2 font-mono text-sm ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          placeholder="e.g., CC(=O)OC1=CC=CC=C1C(=O)O"
+        />
+      </div>
+
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Description
+        </label>
+        <textarea
+          value={editingMolecule.description || ''}
+          onChange={(e) => setEditingMolecule({ ...editingMolecule, description: e.target.value })}
+          rows={10}
+          className={`w-full px-4 py-2 rounded-lg border-2 ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          placeholder="Add description, mechanism..."
+        />
+      </div>
     </div>
-  );
-}
+
+    <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <button
+        onClick={saveMolecule}
+        className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+      >
+        Save Molecule
+      </button>
+      <button
+        onClick={() => {
+          setShowAddWizard(false);
+          setEditingMolecule(null);
+          setWizardName('');
+          setWizardStep('name');
+        }}
+        className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}            
