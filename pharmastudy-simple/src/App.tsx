@@ -581,8 +581,17 @@ const saveMolecule = async () => {
   cas_number: editingMolecule.cas_number || null,
   pubchem_cid: editingMolecule.pubchem_cid || null,
   drug_category: editingMolecule.drug_category || null,
-  primary_function: editingMolecule.primary_function || null
-};
+  primary_function: editingMolecule.primary_function || null,
+   drug_class: editingMolecule.drug_class || null,
+  target_receptor: editingMolecule.target_receptor || null,
+  route_of_administration: editingMolecule.route_of_administration || null,
+  onset_time: editingMolecule.onset_time || null,
+  peak_time: editingMolecule.peak_time || null,
+  duration: editingMolecule.duration || null,
+  metabolism: editingMolecule.metabolism || null,
+  excretion: editingMolecule.excretion || null,
+  side_effects: editingMolecule.side_effects || null
+    };
 
       if (editingMolecule.id) {
         // UPDATE
@@ -2423,7 +2432,130 @@ const startFlashcards = (chapterId?: string) => {
                     />
                   </div>
                 </div>
+                <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">⚙️ Mechanism of Action</h3>
+                    
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Drug Class (e.g., NSAID, Beta-blocker)"
+                        value={editingMolecule.drug_class || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, drug_class: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Target Receptor (e.g., COX-2 enzyme)"
+                        value={editingMolecule.target_receptor || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, target_receptor: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Route (e.g., Oral, IV, Topical)"
+                        value={editingMolecule.route_of_administration || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, route_of_administration: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                    </div>
+                  </div>
 
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Onset (e.g., 30min)"
+                        value={editingMolecule.onset_time || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, onset_time: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Peak (e.g., 1-2h)"
+                        value={editingMolecule.peak_time || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, peak_time: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Duration (e.g., 4-6h)"
+                        value={editingMolecule.duration || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, duration: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <input
+                        type="text"
+                        placeholder="Metabolism (e.g., Hepatic CYP2C9)"
+                        value={editingMolecule.metabolism || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, metabolism: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                      
+                      <input
+                        type="text"
+                        placeholder="Excretion (e.g., Renal 80%)"
+                        value={editingMolecule.excretion || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, excretion: e.target.value })}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
+                    <textarea
+                      placeholder="List common and serious side effects..."
+                      value={editingMolecule.side_effects || ''}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, side_effects: e.target.value })}
+                      rows={3}
+                      className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900'
+                      } focus:outline-none focus:border-teal-500`}
+                    />
+                  </div>
                 <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                   <button
                     onClick={saveMolecule}
