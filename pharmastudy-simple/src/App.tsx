@@ -20,19 +20,7 @@ interface Molecule {
   cas_number?: string;
   molecular_weight?: string;
   pubchem_cid?: string;
-  drug_category?: string;
-  primary_function?: string;
-  drug_class?: string;
-  route_of_administration?: string;
-  target_receptor?: string;
-  mechanism_steps?: string;
-  onset_time?: string;
-  peak_time?: string;
-  duration?: string;
-  metabolism?: string;
-  excretion?: string;
-  side_effects?: string;
-  created_at?: string;
+  // Nouveaux champs
   drug_category?: string;
   primary_function?: string;
   drug_class?: string;
