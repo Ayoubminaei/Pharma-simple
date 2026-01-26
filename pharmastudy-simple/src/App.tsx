@@ -2586,9 +2586,9 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   </div>
 
-                  {editingMolecule.molecule_type === 'drug' && (
-                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>  
-                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
+                {editingMolecule.molecule_type === 'drug' && (
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>                
                     <textarea
                       placeholder="List common and serious side effects..."
                       value={editingMolecule.side_effects || ''}
