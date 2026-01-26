@@ -2517,10 +2517,9 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   </div>
 
+              {editingMolecule.molecule_type === 'drug' && (
                   <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    {editingMolecule.molecule_type === 'drug' && (
-                <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
-                    
+                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>                    
                     <div className="grid grid-cols-3 gap-3">
                       <input
                         type="text"
