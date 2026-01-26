@@ -31,6 +31,8 @@ interface Molecule {
   metabolism?: string;
   excretion?: string;
   side_effects?: string;
+  molecule_type?: string;
+  body_effect?: string;
 }
 
 interface Topic {
@@ -2315,23 +2317,25 @@ const startFlashcards = (chapterId?: string) => {
                     />
                   </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Formula *
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.formula || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, formula: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="e.g., C₉H₈O₄"
-                    />
-                  </div>
-
+                  {editingMolecule.molecule_type !== 'enzyme' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Formula
+                      </label>
+                      <input
+                        type="text"
+                        value={editingMolecule.formula || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, formula: e.target.value })}
+                        className={`w-full px-4 py-2 rounded-lg border-2 ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                        } focus:outline-none`}
+                        placeholder="e.g., C₉H₈O₄"
+                      />
+                    </div>
+                  )}
+                  
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       📷 Image URL
@@ -2402,7 +2406,26 @@ const startFlashcards = (chapterId?: string) => {
                       } focus:outline-none`}
                       placeholder="e.g., Reduces fever and pain"
                     />
-                  </div>                      SMILES (optional)
+                  </div>                      
+
+<div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      🧪 Type
+                    </label>
+                    <select
+                      value={editingMolecule.molecule_type || 'drug'}
+                      onChange={(e) => setEditingMolecule({ ...editingMolecule, molecule_type: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                    >
+                      <option value="drug">💊 Médicament</option>
+                      <option value="enzyme">🧬 Enzyme</option>
+                      <option value="molecule">⚗️ Molécule</option>
+                    </select>
+                  </div>                      
                     </label>
                     <input
                       type="text"
@@ -2431,6 +2454,26 @@ const startFlashcards = (chapterId?: string) => {
                       } focus:outline-none`}
                     />
                   </div>
+
+                {editingMolecule.molecule_type === 'molecule' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        💪 Effect on Body
+                      </label>
+                      <textarea
+                        value={editingMolecule.body_effect || ''}
+                        onChange={(e) => setEditingMolecule({ ...editingMolecule, body_effect: e.target.value })}
+                        rows={4}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white' 
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                        } focus:outline-none focus:border-teal-500`}
+                        placeholder="Describe how this molecule affects the body..."
+                      />
+                    </div>
+                  )} 
+                  
                 </div>
                 <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <h3 className="text-lg font-bold mb-4">⚙️ Mechanism of Action</h3>
@@ -2475,7 +2518,8 @@ const startFlashcards = (chapterId?: string) => {
                   </div>
 
                   <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
+                    {editingMolecule.molecule_type === 'drug' && (
+                <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
                     
                     <div className="grid grid-cols-3 gap-3">
                       <input
@@ -2514,7 +2558,8 @@ const startFlashcards = (chapterId?: string) => {
                         } focus:outline-none focus:border-teal-500`}
                       />
                     </div>
-                    
+                )}
+                
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <input
                         type="text"
@@ -2542,7 +2587,8 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   </div>
 
-                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  {editingMolecule.molecule_type === 'drug' && (
+                  <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>  
                     <h3 className="text-lg font-bold mb-4">⚠️ Side Effects</h3>
                     <textarea
                       placeholder="List common and serious side effects..."
@@ -2556,7 +2602,9 @@ const startFlashcards = (chapterId?: string) => {
                       } focus:outline-none focus:border-teal-500`}
                     />
                   </div>
-                <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
+               )}
+            
+            <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                   <button
                     onClick={saveMolecule}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
