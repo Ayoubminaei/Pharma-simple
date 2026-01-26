@@ -2519,7 +2519,8 @@ const startFlashcards = (chapterId?: string) => {
 
               {editingMolecule.molecule_type === 'drug' && (
                   <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>                    
+                    <h3 className="text-lg font-bold mb-4">💊 Pharmacokinetics</h3>
+                    
                     <div className="grid grid-cols-3 gap-3">
                       <input
                         type="text"
@@ -2557,12 +2558,11 @@ const startFlashcards = (chapterId?: string) => {
                         } focus:outline-none focus:border-teal-500`}
                       />
                     </div>
-                )}
-                
+                    
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <input
                         type="text"
-                        placeholder="Metabolism (e.g., Hepatic CYP2C9)"
+                        placeholder="Metabolism (e.g., Hepatic)"
                         value={editingMolecule.metabolism || ''}
                         onChange={(e) => setEditingMolecule({ ...editingMolecule, metabolism: e.target.value })}
                         className={`w-full px-3 py-2 rounded-lg border text-sm ${
@@ -2574,7 +2574,7 @@ const startFlashcards = (chapterId?: string) => {
                       
                       <input
                         type="text"
-                        placeholder="Excretion (e.g., Renal 80%)"
+                        placeholder="Excretion (e.g., Renal)"
                         value={editingMolecule.excretion || ''}
                         onChange={(e) => setEditingMolecule({ ...editingMolecule, excretion: e.target.value })}
                         className={`w-full px-3 py-2 rounded-lg border text-sm ${
@@ -2585,6 +2585,7 @@ const startFlashcards = (chapterId?: string) => {
                       />
                     </div>
                   </div>
+                )}                
 
                 {editingMolecule.molecule_type === 'drug' && (
                   <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
