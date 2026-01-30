@@ -34,6 +34,24 @@ interface Molecule {
   molecule_type?: string;
   body_effect?: string;
 }
+interface MechanismStep {
+  id: string;
+  mechanism_id: string;
+  step_number: number;
+  title: string;
+  explanation: string;
+  image_url?: string;
+}
+
+interface Mechanism {
+  id: string;
+  user_id: string;
+  chapter_id: string;
+  name: string;
+  description?: string;
+  steps: MechanismStep[];
+  created_at?: string;
+}
 
 interface Topic {
   id: string;
@@ -72,6 +90,7 @@ export default function PharmaKinase() {
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz'>('dashboard');
+  const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
   // Navigation states - 3-LEVEL HIERARCHY
   const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecules'>('chapters');
@@ -80,6 +99,11 @@ export default function PharmaKinase() {
   
   // Data states
   const [chapters, setChapters] = useState<Chapter[]>([]);
+const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
+  const [showMechanismModal, setShowMechanismModal] = useState(false);
+  const [editingMechanism, setEditingMechanism] = useState<Mechanism | null>(null);
+  const [viewingMechanism, setViewingMechanism] = useState<Mechanism | null>(null);
+  
   const [searchQuery, setSearchQuery] = useState('');
   
   // Editing states
