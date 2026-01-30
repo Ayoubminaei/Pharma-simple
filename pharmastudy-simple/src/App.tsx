@@ -2679,13 +2679,13 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               </div>
             </div>
-          )}      
-        </main>
-      </div>
+)}
+      </main>
+    </div>
 
-      {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
-          {showMoleculeModal && viewingMolecule && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
+    {showMoleculeModal && viewingMolecule && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">  
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col`}>
                 {/* Header */}
                 <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
