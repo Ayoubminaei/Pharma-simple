@@ -3328,6 +3328,5 @@ const startFlashcards = (chapterId?: string) => {
           </div>
         </div>
       )}
-    </div>
   );
 }
