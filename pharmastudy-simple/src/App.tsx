@@ -2088,101 +2088,206 @@ const startFlashcards = (chapterId?: string) => {
           )}        </main>
       </div>
 
-      {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
-      {showMoleculeModal && viewingMolecule && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" onClick={() => { setShowMoleculeModal(false); setViewingMolecule(null); }}>
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
-            <div className={`sticky top-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-4 flex items-center justify-between z-10`}>
-              <h2 className="text-2xl font-bold">{viewingMolecule.name}</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setEditingMolecule(viewingMolecule);
-                    setShowMoleculeModal(false);
-                    setShowAddWizard(true);
-                    setWizardStep('edit');
-                    setWizardName(viewingMolecule.name);
-                  }}
-                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <Edit2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    deleteMolecule(viewingMolecule.id);
-                    setShowMoleculeModal(false);
-                    setViewingMolecule(null);
-                  }}
-                  className={`p-2 rounded-lg text-red-500 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMoleculeModal(false);
-                    setViewingMolecule(null);
-                  }}
-                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {viewingMolecule.image_url && (
-                <div className="relative">
-                  <div 
-                    className={`relative ${imageZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'} bg-white rounded-lg p-4`}
-                    onClick={() => setImageZoomed(!imageZoomed)}
-                  >
-                    <img 
-                      src={viewingMolecule.image_url} 
-                      alt={viewingMolecule.name}
-                      className={`w-full object-contain transition-all ${imageZoomed ? 'max-h-[600px]' : 'max-h-64'}`}
-                    />
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-2">
-                      {imageZoomed ? <ZoomOut className="w-5 h-5 text-white" /> : <ZoomIn className="w-5 h-5 text-white" />}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-lg font-bold mb-3">📋 Properties</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Formula</p>
-                    <p className="font-semibold">{viewingMolecule.formula}</p>
-                  </div>
-                  {viewingMolecule.molecular_weight && (
+{/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
+          {showMoleculeModal && viewingMolecule && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col`}>
+                {/* Header */}
+                <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => {
+                        setShowMoleculeModal(false);
+                        setViewingMolecule(null);
+                      }}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <ArrowLeft className="w-6 h-6" />
+                    </button>
                     <div>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Molecular Weight</p>
-                      <p className="font-semibold">{viewingMolecule.molecular_weight} g/mol</p>
+                      <h2 className="text-2xl font-bold">{viewingMolecule.name}</h2>
+                      {viewingMolecule.molecule_type && (
+                        <span className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
+                          viewingMolecule.molecule_type === 'drug' 
+                            ? 'bg-blue-100 text-blue-700'
+                            : viewingMolecule.molecule_type === 'enzyme'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {viewingMolecule.molecule_type === 'drug' ? '💊 Médicament' : viewingMolecule.molecule_type === 'enzyme' ? '🧬 Enzyme' : '⚗️ Molécule'}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-                {viewingMolecule.smiles && (
-                  <div className="mt-4">
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>SMILES</p>
-                    <p className={`font-mono text-sm ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded break-all`}>
-                      {viewingMolecule.smiles}
-                    </p>
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingMolecule(viewingMolecule);
+                        setShowAddWizard(true);
+                        setWizardStep('edit');
+                        setShowMoleculeModal(false);
+                      }}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setShowMoleculeModal(false)}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
 
-              <div>
-                <h3 className="text-lg font-bold mb-3">📖 Description</h3>
-                <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 whitespace-pre-wrap`}>
-                  {viewingMolecule.description}
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Image Section */}
+                    {viewingMolecule.image_url && (
+                      <div className="bg-white rounded-xl p-6 flex items-center justify-center" style={{ minHeight: '400px' }}>
+                        <img 
+                          src={viewingMolecule.image_url} 
+                          alt={viewingMolecule.name}
+                          className="max-h-96 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    {/* Details Section */}
+                    <div className="space-y-6">
+                      {/* Basic Info */}
+                      {viewingMolecule.formula && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Formula</h3>
+                          <p className="text-lg font-mono">{viewingMolecule.formula}</p>
+                        </div>
+                      )}
+
+                      {viewingMolecule.drug_category && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Category</h3>
+                          <span className="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                            {viewingMolecule.drug_category}
+                          </span>
+                        </div>
+                      )}
+
+                      {viewingMolecule.primary_function && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">🎯 Primary Function</h3>
+                          <p>{viewingMolecule.primary_function}</p>
+                        </div>
+                      )}
+
+                      {viewingMolecule.description && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">📝 Description</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.description}</p>
+                        </div>
+                      )}
+
+                      {/* Body Effect (for molecules) */}
+                      {viewingMolecule.body_effect && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">💪 Effect on Body</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.body_effect}</p>
+                        </div>
+                      )}
+
+                      {/* Mechanism of Action */}
+                      {(viewingMolecule.drug_class || viewingMolecule.target_receptor || viewingMolecule.route_of_administration) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">⚙️ Mechanism of Action</h3>
+                          <div className="space-y-2">
+                            {viewingMolecule.drug_class && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Class: </span>
+                                <span>{viewingMolecule.drug_class}</span>
+                              </div>
+                            )}
+                            {viewingMolecule.target_receptor && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Target: </span>
+                                <span>{viewingMolecule.target_receptor}</span>
+                              </div>
+                            )}
+                            {viewingMolecule.route_of_administration && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Route: </span>
+                                <span>{viewingMolecule.route_of_administration}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pharmacokinetics (drugs only) */}
+                      {viewingMolecule.molecule_type === 'drug' && (viewingMolecule.onset_time || viewingMolecule.peak_time || viewingMolecule.duration || viewingMolecule.metabolism || viewingMolecule.excretion) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">💊 Pharmacokinetics</h3>
+                          <div className="grid grid-cols-3 gap-4 mb-3">
+                            {viewingMolecule.onset_time && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Onset</span>
+                                <p className="text-sm">{viewingMolecule.onset_time}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.peak_time && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Peak</span>
+                                <p className="text-sm">{viewingMolecule.peak_time}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.duration && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Duration</span>
+                                <p className="text-sm">{viewingMolecule.duration}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {viewingMolecule.metabolism && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Metabolism</span>
+                                <p className="text-sm">{viewingMolecule.metabolism}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.excretion && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Excretion</span>
+                                <p className="text-sm">{viewingMolecule.excretion}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Side Effects (drugs only) */}
+                      {viewingMolecule.molecule_type === 'drug' && viewingMolecule.side_effects && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">⚠️ Side Effects</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.side_effects}</p>
+                        </div>
+                      )}
+
+                      {/* Additional Info */}
+                      {(viewingMolecule.molecular_weight || viewingMolecule.cas_number || viewingMolecule.pubchem_cid) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Additional Information</h3>
+                          <div className="space-y-1 text-sm">
+                            {viewingMolecule.molecular_weight && <div>MW: {viewingMolecule.molecular_weight}</div>}
+                            {viewingMolecule.cas_number && <div>CAS: {viewingMolecule.cas_number}</div>}
+                            {viewingMolecule.pubchem_cid && <div>PubChem: {viewingMolecule.pubchem_cid}</div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
+          )}
       {/* ADD MOLECULE WIZARD */}
       {showAddWizard && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
