@@ -2294,30 +2294,52 @@ const startFlashcards = (chapterId?: string) => {
                   )}
                 </div>
               ) : (
-                className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}
-                  <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                    flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong) >= 0.7 
-                      ? 'bg-green-100 dark:bg-green-900' 
-                      : 'bg-yellow-100 dark:bg-yellow-900'
-                  }`}>
-                    <span className="text-4xl font-bold">
-                      {Math.round((flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong)) * 100)}%
-                    </span>
-                  </div>
-                  <h2 className="text-3xl font-bold mb-4">Complete!</h2>
-                  <p className={`text-xl mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Correct: {flashcardStats.correct} | Wrong: {flashcardStats.wrong}
-                  </p>
-                  <button
-                    onClick={startFlashcards}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    <span>Start Again</span>
-                  </button>
-                </div>
-              )}
-            </div>
+
+  <div
+    className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}
+  >
+    <div
+      className={`
+        w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center
+        ${
+          flashcardStats.correct /
+            (flashcardStats.correct + flashcardStats.wrong) >=
+          0.7
+            ? 'bg-green-100 dark:bg-green-900'
+            : 'bg-yellow-100 dark:bg-yellow-900'
+        }
+      `}
+    >
+      <span className="text-4xl font-bold">
+        {Math.round(
+          (flashcardStats.correct /
+            (flashcardStats.correct + flashcardStats.wrong)) *
+            100
+        )}
+        %
+      </span>
+    </div>
+
+    <h2 className="text-3xl font-bold mb-4">Complete!</h2>
+
+    <p
+      className={`text-xl mb-8 ${
+        darkMode ? 'text-gray-300' : 'text-gray-700'
+      }`}
+    >
+      Correct: {flashcardStats.correct} | Wrong: {flashcardStats.wrong}
+    </p>
+
+    <button
+      onClick={startFlashcards}
+      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg"
+    >
+      <PlayCircle className="w-5 h-5" />
+      <span>Start Again</span>
+    </button>
+  </div>
+)}
+  
 {/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
             <div>
