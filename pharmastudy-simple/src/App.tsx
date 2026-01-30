@@ -2294,7 +2294,7 @@ const startFlashcards = (chapterId?: string) => {
                   )}
                 </div>
               ) : (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}
                   <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
                     flashcardStats.correct / (flashcardStats.correct + flashcardStats.wrong) >= 0.7 
                       ? 'bg-green-100 dark:bg-green-900' 
