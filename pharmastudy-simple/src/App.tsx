@@ -2680,7 +2680,7 @@ const startFlashcards = (chapterId?: string) => {
               </div>
             </div>
           )}      
-          )}        </main>
+        </main>
       </div>
 
       {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
