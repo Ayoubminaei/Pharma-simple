@@ -1673,13 +1673,7 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-{selectedTopic.molecules
-  .filter(molecule => {
-    if (topicTab === 'all') return true;
-    return molecule.molecule_type === topicTab;
-  })
-  .map(molecule =>
-                      
+{selectedTopic.molecules.map(molecule =>              
                         <div
                           key={molecule.id}
                           className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-purple-500 cursor-pointer`}
@@ -1706,7 +1700,7 @@ const startFlashcards = (chapterId?: string) => {
                             {molecule.description}
                           </p>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
