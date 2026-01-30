@@ -1680,6 +1680,49 @@ const startFlashcards = (chapterId?: string) => {
                       <span>Add Molecule</span>
                     </button>
                   </div>
+                  {/* Tabs pour filtrer par type */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setTopicTab('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'all'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  All ({selectedTopic.molecules.length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('drug')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'drug'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  💊 Médicaments ({selectedTopic.molecules.filter(m => m.molecule_type === 'drug').length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('enzyme')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'enzyme'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  🧬 Enzymes ({selectedTopic.molecules.filter(m => m.molecule_type === 'enzyme').length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('molecule')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'molecule'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  ⚗️ Molécules ({selectedTopic.molecules.filter(m => m.molecule_type === 'molecule').length})
+                </button>
+              </div>
 
                   {selectedTopic.molecules.length === 0 ? (
                     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
@@ -1697,7 +1740,12 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {selectedTopic.molecules.map(molecule => (
+{selectedTopic.molecules
+  .filter(molecule => {
+    if (topicTab === 'all') return true;
+    return molecule.molecule_type === topicTab;
+  })
+  .map(molecule => (
                         <div
                           key={molecule.id}
                           className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-purple-500 cursor-pointer`}
