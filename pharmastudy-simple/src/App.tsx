@@ -1706,7 +1706,7 @@ const startFlashcards = (chapterId?: string) => {
                             {molecule.description}
                           </p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
