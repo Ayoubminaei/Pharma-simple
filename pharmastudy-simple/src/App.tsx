@@ -35,6 +35,24 @@ interface Molecule {
   body_effect?: string;
 }
 
+interface MechanismStep {
+  id: string;
+  mechanism_id: string;
+  step_number: number;
+  title: string;
+  explanation: string;
+  image_url?: string;
+}
+
+interface Mechanism {
+  id: string;
+  user_id: string;
+  chapter_id: string;
+  name: string;
+  description?: string;
+  steps: MechanismStep[];
+  created_at?: string;
+}
 interface Topic {
   id: string;
   chapter_id: string;
@@ -72,6 +90,7 @@ export default function PharmaStudy() {
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz'>('dashboard');
+  const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');  
   
   // Navigation states - 3-LEVEL HIERARCHY
   const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecules'>('chapters');
@@ -80,6 +99,10 @@ export default function PharmaStudy() {
   
   // Data states
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
+  const [showMechanismModal, setShowMechanismModal] = useState(false);
+  const [editingMechanism, setEditingMechanism] = useState<Mechanism | null>(null);
+  const [viewingMechanism, setViewingMechanism] = useState<Mechanism | null>(null);  
   const [searchQuery, setSearchQuery] = useState('');
   
   // Editing states
@@ -99,12 +122,16 @@ export default function PharmaStudy() {
   const [aiGenerating, setAiGenerating] = useState(false);
   
   // Quiz states
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showQuizResult, setShowQuizResult] = useState(false);
-  const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
-  const [quizActive, setQuizActive] = useState(false);
+const [quizActive, setQuizActive] = useState(false);
+const [quizQuestions, setQuizQuestions] = useState<Array<{
+  correctMolecule: Molecule;
+  options: Molecule[];
+  answered: boolean;
+  correct: boolean;
+}>>([]);
+const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+const [showQuizResult, setShowQuizResult] = useState(false);
+const [quizScore, setQuizScore] = useState(0);  
   // Flashcard states
   const [flashcardMode, setFlashcardMode] = useState(false);
   const [flashcards, setFlashcards] = useState<Molecule[]>([]);
@@ -130,6 +157,7 @@ export default function PharmaStudy() {
           name: session.user.user_metadata?.full_name || session.user.email
         });
         await loadChapters();
+        await loadMechanisms();        
       }
     } catch (error) {
       console.error('Session check error:', error);
@@ -189,6 +217,142 @@ export default function PharmaStudy() {
     } catch (error) {
       console.error('Error loading chapters:', error);
       setChapters([]);
+    }
+  };
+
+  // Load mechanisms
+  const loadMechanisms = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: mechanismsData, error: mechError } = await supabase
+        .from('mechanisms')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (mechError) throw mechError;
+      
+      const mechanismsWithSteps = await Promise.all(
+        (mechanismsData || []).map(async (mech) => {
+          const { data: steps, error: stepsError } = await supabase
+            .from('mechanism_steps')
+            .select('*')
+            .eq('mechanism_id', mech.id)
+            .order('step_number');
+          
+          if (stepsError) throw stepsError;
+          
+          return { ...mech, steps: steps || [] };
+        })
+      );
+      
+      setMechanisms(mechanismsWithSteps);
+    } catch (error) {
+      console.error('Error loading mechanisms:', error);
+    }
+  };
+
+  // Save mechanism
+  const saveMechanism = async () => {
+    if (!user) return;
+    if (!editingMechanism?.name?.trim()) {
+      alert('Please enter a mechanism name');
+      return;
+    }
+    
+    try {
+      if (editingMechanism.id) {
+        // Update existing
+        const { error: mechError } = await supabase
+          .from('mechanisms')
+          .update({
+            name: editingMechanism.name.trim(),
+            description: editingMechanism.description || '',
+            chapter_id: editingMechanism.chapter_id
+          })
+          .eq('id', editingMechanism.id);
+        
+        if (mechError) throw mechError;
+        
+        // Delete old steps
+        await supabase
+          .from('mechanism_steps')
+          .delete()
+          .eq('mechanism_id', editingMechanism.id);
+        
+        // Insert new steps
+        if (editingMechanism.steps.length > 0) {
+          const { error: stepsError } = await supabase
+            .from('mechanism_steps')
+            .insert(
+              editingMechanism.steps.map((step, idx) => ({
+                mechanism_id: editingMechanism.id,
+                step_number: idx + 1,
+                title: step.title || '',
+                explanation: step.explanation || '',
+                image_url: step.image_url || null
+              }))
+            );
+          
+          if (stepsError) throw stepsError;
+        }
+      } else {
+        // Create new
+        const { data: newMech, error: mechError } = await supabase
+          .from('mechanisms')
+          .insert([{
+            user_id: user.id,
+            name: editingMechanism.name.trim(),
+            description: editingMechanism.description || '',
+            chapter_id: editingMechanism.chapter_id || null
+          }])
+          .select()
+          .single();
+        
+        if (mechError) throw mechError;
+        
+        // Insert steps
+        if (editingMechanism.steps.length > 0) {
+          const { error: stepsError } = await supabase
+            .from('mechanism_steps')
+            .insert(
+              editingMechanism.steps.map((step, idx) => ({
+                mechanism_id: newMech.id,
+                step_number: idx + 1,
+                title: step.title || '',
+                explanation: step.explanation || '',
+                image_url: step.image_url || null
+              }))
+            );
+          
+          if (stepsError) throw stepsError;
+        }
+      }
+      
+      await loadMechanisms();
+      setShowMechanismModal(false);
+      setEditingMechanism(null);
+      alert('✅ Mechanism saved!');
+    } catch (error) {
+      console.error('Error saving mechanism:', error);
+      alert('Failed to save mechanism');
+    }
+  };
+
+  // Delete mechanism
+  const deleteMechanism = async (id: string) => {
+    if (!confirm('Delete this mechanism?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('mechanisms')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadMechanisms();
+    } catch (error) {
+      console.error('Error deleting mechanism:', error);
     }
   };
 
@@ -802,13 +966,40 @@ const saveMolecule = async () => {
     }
   };
 
-  const restartQuiz = () => {
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setShowQuizResult(false);
-    setQuizScore({ correct: 0, total: quizQuestions.length });
-    setQuizActive(true);
+  const answerQuestion = (selectedMolecule: Molecule) => {
+    const currentQuestion = quizQuestions[currentQuestionIndex];
+    const isCorrect = selectedMolecule.id === currentQuestion.correctMolecule.id;
+    
+    // Update question as answered
+    const updatedQuestions = [...quizQuestions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
+      answered: true,
+      correct: isCorrect
+    };
+    setQuizQuestions(updatedQuestions);
+    
+    if (isCorrect) {
+      setQuizScore(prev => prev + 1);
+    }
+    
+    // Move to next question after 1 second
+    setTimeout(() => {
+      if (currentQuestionIndex < quizQuestions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+      } else {
+        setShowQuizResult(true);
+      }
+    }, 1000);
   };
+
+  const restartQuiz = () => {
+    setQuizActive(false);
+    setQuizQuestions([]);
+    setCurrentQuestionIndex(0);
+    setQuizScore(0);
+    setShowQuizResult(false);
+  };  
   // Flashcard functions
 const startFlashcards = (chapterId?: string) => {
     let molecules;
@@ -1071,7 +1262,7 @@ const startFlashcards = (chapterId?: string) => {
               <FlaskConical className="w-8 h-8 text-white" />
             </div>
             <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-              PharmaStudy Pro
+              Pharmakinase
             </h1>
             <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               AI-Powered Molecular Learning
@@ -1214,7 +1405,7 @@ const startFlashcards = (chapterId?: string) => {
                 <FlaskConical className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="font-bold text-xl hidden sm:block">PharmaStudy</span>
+                <span className="font-bold text-xl hidden sm:block">Pharmakinase</span>
                 <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} hidden sm:block`}>Enhanced</span>
               </div>
             </div>
@@ -1300,7 +1491,17 @@ const startFlashcards = (chapterId?: string) => {
               <Sparkles className="w-5 h-5" />
               <span className="font-medium">Flashcards</span>
             </button>          </nav>
-
+            <button
+              onClick={() => setActiveTab('mechanisms')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'mechanisms'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <FlaskConical className="w-5 h-5" />
+              <span className="font-medium">Mechanisms</span>
+            </button>
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-900 to-teal-900' : 'bg-gradient-to-br from-blue-50 to-teal-50'}`}>
               <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -1657,6 +1858,50 @@ const startFlashcards = (chapterId?: string) => {
                     </button>
                   </div>
 
+              {/* Tabs pour filtrer par type */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setTopicTab('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'all'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  All ({selectedTopic.molecules.length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('drug')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'drug'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  💊 Médicaments ({selectedTopic.molecules.filter(m => m.molecule_type === 'drug').length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('enzyme')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'enzyme'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  🧬 Enzymes ({selectedTopic.molecules.filter(m => m.molecule_type === 'enzyme').length})
+                </button>
+                <button
+                  onClick={() => setTopicTab('molecule')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    topicTab === 'molecule'
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                      : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  ⚗️ Molécules ({selectedTopic.molecules.filter(m => m.molecule_type === 'molecule').length})
+                </button>
+              </div>                  
+
                   {selectedTopic.molecules.length === 0 ? (
                     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
                       <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
@@ -1673,7 +1918,13 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {selectedTopic.molecules.map(molecule => (
+                      {selectedTopic.molecules
+                        .filter(molecule => {
+                         if (topicTab === 'all') return true;
+                          return molecule.molecule_type === topicTab;
+                           })
+                            .map(molecule => (
+                      
                         <div
                           key={molecule.id}
                           className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-purple-500 cursor-pointer`}
@@ -1769,139 +2020,121 @@ const startFlashcards = (chapterId?: string) => {
           {/* QUIZ MODE */}
           {activeTab === 'quiz' && (
             <div>
-              <h1 className="text-3xl font-bold mb-6">Quiz Mode</h1>
+              <h1 className="text-3xl font-bold mb-6">🧠 Quiz Mode</h1>
               
-              {!quizActive && quizQuestions.length === 0 ? (
+              {!quizActive ? (
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                  <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                   <h3 className="text-2xl font-bold mb-4">Test Your Knowledge!</h3>
                   <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Generate a quiz from your molecules.
+                    Identify molecules from their images
                   </p>
                   <button
-                    onClick={generateQuiz}
-                    className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
+                    onClick={startQuiz}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
                   >
                     <PlayCircle className="w-5 h-5" />
                     <span>Start Quiz</span>
                   </button>
                 </div>
-              ) : !quizActive && quizQuestions.length > 0 ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                    quizScore.correct / quizScore.total >= 0.7 
-                      ? 'bg-green-100 dark:bg-green-900' 
-                      : 'bg-yellow-100 dark:bg-yellow-900'
-                  }`}>
-                    <span className="text-4xl font-bold">
-                      {Math.round((quizScore.correct / quizScore.total) * 100)}%
-                    </span>
-                  </div>
-                  <h2 className="text-3xl font-bold mb-4">Quiz Complete!</h2>
-                  <p className={`text-xl mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    You got {quizScore.correct} out of {quizScore.total} correct!
-                  </p>
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={restartQuiz}
-                      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
-                    >
-                      <PlayCircle className="w-5 h-5" />
-                      <span>Try Again</span>
-                    </button>
-                    <button
-                      onClick={generateQuiz}
-                      className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      <span>New Quiz</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-3xl mx-auto`}>
+              ) : !showQuizResult ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-4xl mx-auto`}>
+                  {/* Progress */}
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Question {currentQuestionIndex + 1} of {quizQuestions.length}
                       </span>
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Score: {quizScore.correct}/{currentQuestionIndex}
+                        Score: {quizScore}/{quizQuestions.length}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div 
-                        className="bg-gradient-to-r from-blue-500 to-teal-500 h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
                         style={{ width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%` }}
                       />
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-bold mb-6 whitespace-pre-line">
-                    {quizQuestions[currentQuestionIndex].question}
-                  </h3>
+                  {/* Question */}
+                  <h2 className="text-2xl font-bold text-center mb-8">
+                    Which one is {quizQuestions[currentQuestionIndex].correctMolecule.name}?
+                  </h2>
 
-                  <div className="space-y-3 mb-6">
-                    {quizQuestions[currentQuestionIndex].options.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => !showQuizResult && handleQuizAnswer(index)}
-                        disabled={showQuizResult}
-                        className={`w-full p-4 rounded-lg text-left transition-all ${
-                          showQuizResult
-                            ? index === quizQuestions[currentQuestionIndex].correctAnswer
-                              ? 'bg-green-500 text-white'
-                              : index === selectedAnswer
-                              ? 'bg-red-500 text-white'
-                              : darkMode ? 'bg-gray-700' : 'bg-gray-100'
-                            : darkMode 
-                            ? 'bg-gray-700 hover:bg-gray-600' 
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {showQuizResult && (
-                            index === quizQuestions[currentQuestionIndex].correctAnswer ? (
-                              <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                            ) : index === selectedAnswer ? (
-                              <XCircle className="w-5 h-5 flex-shrink-0" />
-                            ) : null
+                  {/* Options Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {quizQuestions[currentQuestionIndex].options.map((option, idx) => {
+                      const isAnswered = quizQuestions[currentQuestionIndex].answered;
+                      const isCorrect = option.id === quizQuestions[currentQuestionIndex].correctMolecule.id;
+                      const isSelected = isAnswered && isCorrect;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => !isAnswered && answerQuestion(option)}
+                          disabled={isAnswered}
+                          className={`p-6 rounded-xl transition-all ${
+                            isAnswered
+                              ? isCorrect
+                                ? 'bg-green-100 border-2 border-green-500'
+                                : 'bg-gray-100 border-2 border-gray-300 opacity-50'
+                              : darkMode
+                              ? 'bg-gray-700 hover:bg-gray-600 border-2 border-gray-600 hover:border-blue-500'
+                              : 'bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 hover:border-blue-400'
+                          }`}
+                        >
+                          <div className="bg-white rounded-lg p-4 mb-3" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {option.image_url ? (
+                              <img 
+                                src={option.image_url} 
+                                alt="Option"
+                                className="max-h-40 object-contain"
+                              />
+                            ) : (
+                              <FlaskConical className="w-20 h-20 text-gray-400" />
+                            )}
+                          </div>
+                          {isAnswered && isCorrect && (
+                            <div className="flex items-center justify-center gap-2 text-green-700 font-bold">
+                              <CheckCircle className="w-5 h-5" />
+                              <span>Correct!</span>
+                            </div>
                           )}
-                          <span>{option}</span>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
-
-                  {showQuizResult && (
-                    <div className={`p-4 rounded-lg mb-6 ${
-                      selectedAnswer === quizQuestions[currentQuestionIndex].correctAnswer
-                        ? 'bg-green-100 dark:bg-green-900'
-                        : 'bg-red-100 dark:bg-red-900'
-                    }`}>
-                      <p className="font-medium mb-2">
-                        {selectedAnswer === quizQuestions[currentQuestionIndex].correctAnswer
-                          ? '✅ Correct!'
-                          : '❌ Incorrect'}
-                      </p>
-                      <p className="text-sm">
-                        {quizQuestions[currentQuestionIndex].explanation}
-                      </p>
-                    </div>
-                  )}
-
-                  {showQuizResult && (
-                    <button
-                      onClick={nextQuestion}
-                      className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
-                    >
-                      {currentQuestionIndex < quizQuestions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-                    </button>
-                  )}
+                </div>
+              ) : (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center max-w-2xl mx-auto`}>
+                  <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
+                    quizScore / quizQuestions.length >= 0.7 
+                      ? 'bg-green-100 dark:bg-green-900' 
+                      : 'bg-yellow-100 dark:bg-yellow-900'
+                  }`}>
+                    <span className="text-4xl font-bold">
+                      {Math.round((quizScore / quizQuestions.length) * 100)}%
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-bold mb-4">
+                    {quizScore / quizQuestions.length >= 0.7 ? '🎉 Great Job!' : '📚 Keep Studying!'}
+                  </h2>
+                  <p className={`text-xl mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    You got {quizScore} out of {quizQuestions.length} correct
+                  </p>
+                  <button
+                    onClick={restartQuiz}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    <span>Try Again</span>
+                  </button>
                 </div>
               )}
             </div>
           )}
+          
           {/* FLASHCARDS MODE */}
           {activeTab === 'flashcards' && (
             <div>
@@ -2085,104 +2318,550 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               )}
             </div>
+{/* MECHANISMS VIEW */}
+          {activeTab === 'mechanisms' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold">🧬 Chemical Mechanisms</h1>
+                <button
+                  onClick={() => {
+                    setEditingMechanism({
+                      id: '',
+                      user_id: user?.id || '',
+                      chapter_id: '',
+                      name: '',
+                      description: '',
+                      steps: [{
+                        id: '',
+                        mechanism_id: '',
+                        step_number: 1,
+                        title: '',
+                        explanation: '',
+                        image_url: ''
+                      }]
+                    });
+                    setShowMechanismModal(true);
+                  }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Mechanism
+                </button>
+              </div>
+
+              {mechanisms.length === 0 ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                  <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <h3 className="text-xl font-bold mb-2">No mechanisms yet</h3>
+                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Create your first chemical mechanism like Glycolysis!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {mechanisms.map(mechanism => (
+                    <div
+                      key={mechanism.id}
+                      className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                      onClick={() => {
+                        setViewingMechanism(mechanism);
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-xl font-bold">{mechanism.name}</h3>
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => {
+                              setEditingMechanism(mechanism);
+                              setShowMechanismModal(true);
+                            }}
+                            className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteMechanism(mechanism.id)}
+                            className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {mechanism.description && (
+                        <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {mechanism.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                          {mechanism.steps.length} steps
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* MECHANISM DETAIL MODAL */}
+          {viewingMechanism && !showMechanismModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
+                {/* Header */}
+                <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <h2 className="text-2xl font-bold">{viewingMechanism.name}</h2>
+                  <button
+                    onClick={() => setViewingMechanism(null)}
+                    className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {viewingMechanism.description && (
+                    <p className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {viewingMechanism.description}
+                    </p>
+                  )}
+
+                  <div className="space-y-6">
+                    {viewingMechanism.steps.map((step, idx) => (
+                      <div
+                        key={idx}
+                        className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} rounded-xl p-6 border-l-4 border-purple-500`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            {step.title && (
+                              <h3 className="text-lg font-bold mb-2">{step.title}</h3>
+                            )}
+                            {step.explanation && (
+                              <p className={`mb-4 whitespace-pre-wrap ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {step.explanation}
+                              </p>
+                            )}
+                            {step.image_url && (
+                              <div className="bg-white rounded-lg p-4">
+                                <img 
+                                  src={step.image_url} 
+                                  alt={`Step ${idx + 1}`}
+                                  className="max-h-64 mx-auto object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MECHANISM EDIT MODAL */}
+          {showMechanismModal && editingMechanism && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
+                {/* Header */}
+                <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <h2 className="text-2xl font-bold">
+                    {editingMechanism.id ? 'Edit Mechanism' : 'New Mechanism'}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowMechanismModal(false);
+                      setEditingMechanism(null);
+                    }}
+                    className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Basic Info */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Mechanism Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={editingMechanism.name}
+                      onChange={(e) => setEditingMechanism({ ...editingMechanism, name: e.target.value })}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900'
+                      } focus:outline-none focus:border-purple-500`}
+                      placeholder="e.g., Glycolysis"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Description
+                    </label>
+                    <textarea
+                      value={editingMechanism.description || ''}
+                      onChange={(e) => setEditingMechanism({ ...editingMechanism, description: e.target.value })}
+                      rows={3}
+                      className={`w-full px-4 py-2 rounded-lg border-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900'
+                      } focus:outline-none focus:border-purple-500`}
+                      placeholder="Brief description of this mechanism"
+                    />
+                  </div>
+
+                  {/* Steps */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold">Steps</h3>
+                      <button
+                        onClick={() => {
+                          setEditingMechanism({
+                            ...editingMechanism,
+                            steps: [...editingMechanism.steps, {
+                              id: '',
+                              mechanism_id: editingMechanism.id,
+                              step_number: editingMechanism.steps.length + 1,
+                              title: '',
+                              explanation: '',
+                              image_url: ''
+                            }]
+                          });
+                        }}
+                        className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Step
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {editingMechanism.steps.map((step, idx) => (
+                        <div
+                          key={idx}
+                          className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-purple-500`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-bold text-purple-500">Step {idx + 1}</span>
+                            {editingMechanism.steps.length > 1 && (
+                              <button
+                                onClick={() => {
+                                  setEditingMechanism({
+                                    ...editingMechanism,
+                                    steps: editingMechanism.steps.filter((_, i) => i !== idx)
+                                  });
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={step.title}
+                              onChange={(e) => {
+                                const newSteps = [...editingMechanism.steps];
+                                newSteps[idx].title = e.target.value;
+                                setEditingMechanism({ ...editingMechanism, steps: newSteps });
+                              }}
+                              className={`w-full px-3 py-2 rounded-lg border ${
+                                darkMode 
+                                  ? 'bg-gray-800 border-gray-700 text-white' 
+                                  : 'bg-white border-gray-200 text-gray-900'
+                              } focus:outline-none focus:border-purple-500`}
+                              placeholder="Step title (optional)"
+                            />
+
+                            <textarea
+                              value={step.explanation}
+                              onChange={(e) => {
+                                const newSteps = [...editingMechanism.steps];
+                                newSteps[idx].explanation = e.target.value;
+                                setEditingMechanism({ ...editingMechanism, steps: newSteps });
+                              }}
+                              rows={4}
+                              className={`w-full px-3 py-2 rounded-lg border ${
+                                darkMode 
+                                  ? 'bg-gray-800 border-gray-700 text-white' 
+                                  : 'bg-white border-gray-200 text-gray-900'
+                              } focus:outline-none focus:border-purple-500`}
+                              placeholder="Explain what happens in this step..."
+                            />
+
+                            <input
+                              type="text"
+                              value={step.image_url || ''}
+                              onChange={(e) => {
+                                const newSteps = [...editingMechanism.steps];
+                                newSteps[idx].image_url = e.target.value;
+                                setEditingMechanism({ ...editingMechanism, steps: newSteps });
+                              }}
+                              className={`w-full px-3 py-2 rounded-lg border ${
+                                darkMode 
+                                  ? 'bg-gray-800 border-gray-700 text-white' 
+                                  : 'bg-white border-gray-200 text-gray-900'
+                              } focus:outline-none focus:border-purple-500`}
+                              placeholder="Image URL (optional)"
+                            />
+
+                            {step.image_url && (
+                              <div className="bg-white rounded-lg p-2">
+                                <img 
+                                  src={step.image_url} 
+                                  alt="Preview"
+                                  className="max-h-32 mx-auto object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className={`flex gap-3 p-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <button
+                    onClick={saveMechanism}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    💾 Save Mechanism
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMechanismModal(false);
+                      setEditingMechanism(null);
+                    }}
+                    className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}      
           )}        </main>
       </div>
 
       {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
-      {showMoleculeModal && viewingMolecule && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" onClick={() => { setShowMoleculeModal(false); setViewingMolecule(null); }}>
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
-            <div className={`sticky top-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-4 flex items-center justify-between z-10`}>
-              <h2 className="text-2xl font-bold">{viewingMolecule.name}</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setEditingMolecule(viewingMolecule);
-                    setShowMoleculeModal(false);
-                    setShowAddWizard(true);
-                    setWizardStep('edit');
-                    setWizardName(viewingMolecule.name);
-                  }}
-                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <Edit2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    deleteMolecule(viewingMolecule.id);
-                    setShowMoleculeModal(false);
-                    setViewingMolecule(null);
-                  }}
-                  className={`p-2 rounded-lg text-red-500 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMoleculeModal(false);
-                    setViewingMolecule(null);
-                  }}
-                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {viewingMolecule.image_url && (
-                <div className="relative">
-                  <div 
-                    className={`relative ${imageZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'} bg-white rounded-lg p-4`}
-                    onClick={() => setImageZoomed(!imageZoomed)}
-                  >
-                    <img 
-                      src={viewingMolecule.image_url} 
-                      alt={viewingMolecule.name}
-                      className={`w-full object-contain transition-all ${imageZoomed ? 'max-h-[600px]' : 'max-h-64'}`}
-                    />
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-2">
-                      {imageZoomed ? <ZoomOut className="w-5 h-5 text-white" /> : <ZoomIn className="w-5 h-5 text-white" />}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-lg font-bold mb-3">📋 Properties</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Formula</p>
-                    <p className="font-semibold">{viewingMolecule.formula}</p>
-                  </div>
-                  {viewingMolecule.molecular_weight && (
+          {showMoleculeModal && viewingMolecule && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col`}>
+                {/* Header */}
+                <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => {
+                        setShowMoleculeModal(false);
+                        setViewingMolecule(null);
+                      }}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <ArrowLeft className="w-6 h-6" />
+                    </button>
                     <div>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Molecular Weight</p>
-                      <p className="font-semibold">{viewingMolecule.molecular_weight} g/mol</p>
+                      <h2 className="text-2xl font-bold">{viewingMolecule.name}</h2>
+                      {viewingMolecule.molecule_type && (
+                        <span className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
+                          viewingMolecule.molecule_type === 'drug' 
+                            ? 'bg-blue-100 text-blue-700'
+                            : viewingMolecule.molecule_type === 'enzyme'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {viewingMolecule.molecule_type === 'drug' ? '💊 Médicament' : viewingMolecule.molecule_type === 'enzyme' ? '🧬 Enzyme' : '⚗️ Molécule'}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-                {viewingMolecule.smiles && (
-                  <div className="mt-4">
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>SMILES</p>
-                    <p className={`font-mono text-sm ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded break-all`}>
-                      {viewingMolecule.smiles}
-                    </p>
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingMolecule(viewingMolecule);
+                        setShowAddWizard(true);
+                        setWizardStep('edit');
+                        setShowMoleculeModal(false);
+                      }}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setShowMoleculeModal(false)}
+                      className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
 
-              <div>
-                <h3 className="text-lg font-bold mb-3">📖 Description</h3>
-                <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 whitespace-pre-wrap`}>
-                  {viewingMolecule.description}
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Image Section */}
+                    {viewingMolecule.image_url && (
+                      <div className="bg-white rounded-xl p-6 flex items-center justify-center" style={{ minHeight: '400px' }}>
+                        <img 
+                          src={viewingMolecule.image_url} 
+                          alt={viewingMolecule.name}
+                          className="max-h-96 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    {/* Details Section */}
+                    <div className="space-y-6">
+                      {/* Basic Info */}
+                      {viewingMolecule.formula && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Formula</h3>
+                          <p className="text-lg font-mono">{viewingMolecule.formula}</p>
+                        </div>
+                      )}
+
+                      {viewingMolecule.drug_category && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Category</h3>
+                          <span className="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                            {viewingMolecule.drug_category}
+                          </span>
+                        </div>
+                      )}
+
+                      {viewingMolecule.primary_function && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">🎯 Primary Function</h3>
+                          <p>{viewingMolecule.primary_function}</p>
+                        </div>
+                      )}
+
+                      {viewingMolecule.description && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">📝 Description</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.description}</p>
+                        </div>
+                      )}
+
+                      {/* Body Effect (for molecules) */}
+                      {viewingMolecule.body_effect && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">💪 Effect on Body</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.body_effect}</p>
+                        </div>
+                      )}
+
+                      {/* Mechanism of Action */}
+                      {(viewingMolecule.drug_class || viewingMolecule.target_receptor || viewingMolecule.route_of_administration) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">⚙️ Mechanism of Action</h3>
+                          <div className="space-y-2">
+                            {viewingMolecule.drug_class && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Class: </span>
+                                <span>{viewingMolecule.drug_class}</span>
+                              </div>
+                            )}
+                            {viewingMolecule.target_receptor && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Target: </span>
+                                <span>{viewingMolecule.target_receptor}</span>
+                              </div>
+                            )}
+                            {viewingMolecule.route_of_administration && (
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500">Route: </span>
+                                <span>{viewingMolecule.route_of_administration}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pharmacokinetics (drugs only) */}
+                      {viewingMolecule.molecule_type === 'drug' && (viewingMolecule.onset_time || viewingMolecule.peak_time || viewingMolecule.duration || viewingMolecule.metabolism || viewingMolecule.excretion) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">💊 Pharmacokinetics</h3>
+                          <div className="grid grid-cols-3 gap-4 mb-3">
+                            {viewingMolecule.onset_time && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Onset</span>
+                                <p className="text-sm">{viewingMolecule.onset_time}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.peak_time && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Peak</span>
+                                <p className="text-sm">{viewingMolecule.peak_time}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.duration && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Duration</span>
+                                <p className="text-sm">{viewingMolecule.duration}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {viewingMolecule.metabolism && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Metabolism</span>
+                                <p className="text-sm">{viewingMolecule.metabolism}</p>
+                              </div>
+                            )}
+                            {viewingMolecule.excretion && (
+                              <div>
+                                <span className="text-xs font-semibold text-gray-500">Excretion</span>
+                                <p className="text-sm">{viewingMolecule.excretion}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Side Effects (drugs only) */}
+                      {viewingMolecule.molecule_type === 'drug' && viewingMolecule.side_effects && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-3">⚠️ Side Effects</h3>
+                          <p className="whitespace-pre-wrap">{viewingMolecule.side_effects}</p>
+                        </div>
+                      )}
+
+                      {/* Additional Info */}
+                      {(viewingMolecule.molecular_weight || viewingMolecule.cas_number || viewingMolecule.pubchem_cid) && (
+                        <div className="border-t pt-4 dark:border-gray-700">
+                          <h3 className="text-sm font-semibold mb-2 text-gray-500">Additional Information</h3>
+                          <div className="space-y-1 text-sm">
+                            {viewingMolecule.molecular_weight && <div>MW: {viewingMolecule.molecular_weight}</div>}
+                            {viewingMolecule.cas_number && <div>CAS: {viewingMolecule.cas_number}</div>}
+                            {viewingMolecule.pubchem_cid && <div>PubChem: {viewingMolecule.pubchem_cid}</div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
+          )}
+      
       {/* ADD MOLECULE WIZARD */}
       {showAddWizard && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
