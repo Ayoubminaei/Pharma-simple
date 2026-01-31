@@ -251,6 +251,9 @@ export default function PharmaKinase() {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+const [resetEmail, setResetEmail] = useState('');
+const [resetSent, setResetSent] = useState(false);
   
   // UI states
   const [darkMode, setDarkMode] = useState(false);
@@ -586,6 +589,32 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
       console.error('Logout error:', error);
     }
   };
+  const handlePasswordReset = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!resetEmail.trim()) {
+    alert('Please enter your email');
+    return;
+  }
+  
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}`,
+    });
+    
+    if (error) throw error;
+    
+    setResetSent(true);
+    setTimeout(() => {
+      setShowForgotPassword(false);
+      setResetEmail('');
+      setResetSent(false);
+    }, 3000);
+  } catch (error: any) {
+    console.error('Password reset error:', error);
+    alert(error.message || 'Failed to send reset email');
+  }
+};
 
   // Navigation helpers
   const goToChapters = () => {
@@ -1497,12 +1526,22 @@ const startFlashcards = (chapterId?: string) => {
               </div>
             </div>
 
-            <button
+<button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
             >
               {isLogin ? 'Login' : 'Create Account'}
             </button>
+            
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}
+              >
+                Forgot your password?
+              </button>
+            )}
           </form>
 
           <button
@@ -1518,6 +1557,83 @@ const startFlashcards = (chapterId?: string) => {
             A little idea of A.Minaei ✨
           </p>
         </div>
+<p className={`mt-6 text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            A little idea of A.Minaei ✨
+          </p>
+        </div>
+        
+        {/* PASSWORD RESET MODAL */}
+        {showForgotPassword && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className={`w-full max-w-md ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl p-8`}>
+              <div className="text-center mb-6">
+                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                  Reset Password
+                </h2>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Enter your email to receive a password reset link
+                </p>
+              </div>
+
+              {resetSent ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Email Sent!
+                  </h3>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Check your inbox for the password reset link
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                      } focus:outline-none`}
+                      placeholder="your@email.com"
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    Send Reset Link
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmail('');
+                    }}
+                    className={`w-full py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+        
       </div>
     );
   }
