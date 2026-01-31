@@ -874,10 +874,21 @@ const saveMolecule = async () => {
   };
 
   // Quiz functions
-const generateQuiz = () => {
-  const allMolecules = chapters.flatMap(c => 
-    c.topics.flatMap(t => t.molecules)
-  ).filter(m => m.image_url); // Seulement les molécules avec images
+const generateQuiz = (chapterId?: string) => {
+  let allMolecules;
+  
+  if (chapterId) {
+    // Quiz pour un chapitre spécifique
+    const chapter = chapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+    
+    allMolecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url);
+  } else {
+    // Quiz pour tous les chapitres
+    allMolecules = chapters.flatMap(c => 
+      c.topics.flatMap(t => t.molecules)
+    ).filter(m => m.image_url);
+  }
   
   if (allMolecules.length < 4) {
     alert('Vous avez besoin d\'au moins 4 molécules avec images pour générer un quiz !');
@@ -1970,27 +1981,75 @@ const startFlashcards = (chapterId?: string) => {
               )}
             </div>
           )}
+          
+{/* QUIZ MODE */}
+{activeTab === 'quiz' && (
+  <div>
+    <h1 className="text-3xl font-bold mb-6">Quiz Mode</h1>
+    
+    {!quizActive && quizQuestions.length === 0 ? (
+      <div>
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 text-center mb-6`}>
+          <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+          <h3 className="text-2xl font-bold mb-4">Test Your Knowledge!</h3>
+          <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Choose a chapter to start your quiz
+          </p>
+        </div>
 
-          {/* QUIZ MODE */}
-          {activeTab === 'quiz' && (
-            <div>
-              <h1 className="text-3xl font-bold mb-6">Quiz Mode</h1>
-              
-              {!quizActive && quizQuestions.length === 0 ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                  <h3 className="text-2xl font-bold mb-4">Test Your Knowledge!</h3>
-                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Generate a quiz from your molecules.
-                  </p>
-                  <button
-                    onClick={generateQuiz}
-                    className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all mx-auto"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    <span>Start Quiz</span>
-                  </button>
-                </div>
+        {/* SÉLECTION DES CHAPITRES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Option: Tous les chapitres */}
+          <div
+            onClick={() => generateQuiz()}
+            className={`${darkMode ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-700 hover:border-purple-500' : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:border-purple-400'} border-2 rounded-xl p-6 cursor-pointer transition-all hover:shadow-xl`}
+          >
+            <Sparkles className="w-12 h-12 text-purple-500 mb-3" />
+            <h3 className="text-xl font-bold mb-2">🌟 All Chapters</h3>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Quiz from all your molecules
+            </p>
+            <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+              {chapters.flatMap(c => c.topics.flatMap(t => t.molecules)).filter(m => m.image_url).length} molecules
+            </p>
+          </div>
+
+          {/* Liste des chapitres */}
+          {chapters.map(chapter => {
+            const moleculesWithImages = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url).length;
+            
+            if (moleculesWithImages < 4) return null;
+            
+            return (
+              <div
+                key={chapter.id}
+                onClick={() => generateQuiz(chapter.id)}
+                className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750 border-gray-700 hover:border-blue-500' : 'bg-white hover:shadow-xl border-gray-200 hover:border-blue-400'} border-2 rounded-xl p-6 cursor-pointer transition-all`}
+              >
+                <BookOpen className="w-12 h-12 text-blue-500 mb-3" />
+                <h3 className="text-xl font-bold mb-2">{chapter.name}</h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {chapter.topics.length} topics
+                </p>
+                <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {moleculesWithImages} molecules available
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {chapters.flatMap(c => c.topics.flatMap(t => t.molecules)).filter(m => m.image_url).length < 4 && (
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center mt-6`}>
+            <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className="text-xl font-bold mb-2">Not enough molecules</h3>
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Add at least 4 molecules with images to create a quiz!
+            </p>
+          </div>
+        )}
+      </div>
+          
               ) : !quizActive && quizQuestions.length > 0 ? (
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
                   <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
