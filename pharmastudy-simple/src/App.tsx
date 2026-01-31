@@ -1348,6 +1348,9 @@ const startFlashcards = (chapterId?: string) => {
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
+          <p className={`mt-6 text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            A little idea of A.Minaei ✨
+          </p>
         </div>
       </div>
     );
