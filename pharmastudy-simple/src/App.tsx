@@ -104,9 +104,6 @@ const uploadImage = async (file: File, user: { id: string }): Promise<string | n
 };
 
 export default function PharmaKinase() {
-
-// Main App
-export default function PharmaKinase() {
   // Auth states
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
