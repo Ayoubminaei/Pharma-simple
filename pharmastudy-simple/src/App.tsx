@@ -874,74 +874,60 @@ const saveMolecule = async () => {
   };
 
   // Quiz functions
-  const generateQuiz = () => {
-    const allMolecules = chapters.flatMap(c => 
-      c.topics.flatMap(t => t.molecules)
-    );
+const generateQuiz = () => {
+  const allMolecules = chapters.flatMap(c => 
+    c.topics.flatMap(t => t.molecules)
+  ).filter(m => m.image_url); // Seulement les molécules avec images
+  
+  if (allMolecules.length < 4) {
+    alert('Vous avez besoin d\'au moins 4 molécules avec images pour générer un quiz !');
+    return;
+  }
+  
+  const questions: QuizQuestion[] = [];
+  const usedMolecules = new Set<string>();
+  const numQuestions = Math.min(10, allMolecules.length);
+  
+  for (let i = 0; i < numQuestions; i++) {
+    let correctMolecule;
+    do {
+      correctMolecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
+    } while (usedMolecules.has(correctMolecule.id));
     
-    if (allMolecules.length < 4) {
-      alert('You need at least 4 molecules to generate a quiz!');
-      return;
-    }
+    usedMolecules.add(correctMolecule.id);
     
-    const questions: QuizQuestion[] = [];
-    const usedMolecules = new Set<string>();
-    const numQuestions = Math.min(5, allMolecules.length);
+    // Choisir 3 autres molécules différentes
+    const wrongMolecules = [];
+    const availableWrong = allMolecules.filter(m => m.id !== correctMolecule.id);
     
-    for (let i = 0; i < numQuestions; i++) {
-      let molecule;
-      do {
-        molecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
-      } while (usedMolecules.has(molecule.id));
+    while (wrongMolecules.length < 3 && availableWrong.length > 0) {
+      const randomIndex = Math.floor(Math.random() * availableWrong.length);
+      const wrongMol = availableWrong[randomIndex];
       
-      usedMolecules.add(molecule.id);
-      
-      if (Math.random() > 0.5) {
-        const otherMolecules = allMolecules.filter(m => m.id !== molecule.id);
-        const wrongAnswers = [];
-        for (let j = 0; j < 3; j++) {
-          const wrong = otherMolecules[Math.floor(Math.random() * otherMolecules.length)];
-          if (!wrongAnswers.includes(wrong.name)) {
-            wrongAnswers.push(wrong.name);
-          }
-        }
-        
-        const options = [molecule.name, ...wrongAnswers].sort(() => Math.random() - 0.5);
-        
-        questions.push({
-          question: `What is the name of this molecule?\nFormula: ${molecule.formula}`,
-          options,
-          correctAnswer: options.indexOf(molecule.name),
-          explanation: `This is ${molecule.name}.`
-        });
-      } else {
-        const otherMolecules = allMolecules.filter(m => m.id !== molecule.id);
-        const wrongAnswers = [];
-        for (let j = 0; j < 3; j++) {
-          const wrong = otherMolecules[Math.floor(Math.random() * otherMolecules.length)];
-          if (!wrongAnswers.includes(wrong.formula)) {
-            wrongAnswers.push(wrong.formula);
-          }
-        }
-        
-        const options = [molecule.formula, ...wrongAnswers].sort(() => Math.random() - 0.5);
-        
-        questions.push({
-          question: `What is the molecular formula of ${molecule.name}?`,
-          options,
-          correctAnswer: options.indexOf(molecule.formula),
-          explanation: `${molecule.name} has the formula ${molecule.formula}.`
-        });
+      if (!wrongMolecules.find(m => m.id === wrongMol.id)) {
+        wrongMolecules.push(wrongMol);
       }
+      availableWrong.splice(randomIndex, 1);
     }
     
-    setQuizQuestions(questions);
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setShowQuizResult(false);
-    setQuizScore({ correct: 0, total: questions.length });
-    setQuizActive(true);
-  };
+    // Mélanger les 4 molécules (1 correcte + 3 fausses)
+    const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+    
+    questions.push({
+      question: `Quelle est la structure de ${correctMolecule.name} ?`,
+      options: allOptions.map(m => m.image_url || ''),
+      correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+      explanation: `Ceci est la structure de ${correctMolecule.name}. ${correctMolecule.primary_function || ''}`
+    });
+  }
+  
+  setQuizQuestions(questions);
+  setCurrentQuestionIndex(0);
+  setSelectedAnswer(null);
+  setShowQuizResult(false);
+  setQuizScore({ correct: 0, total: questions.length });
+  setQuizActive(true);
+};
 
   const handleQuizAnswer = (answerIndex: number) => {
     setSelectedAnswer(answerIndex);
@@ -2060,37 +2046,46 @@ const startFlashcards = (chapterId?: string) => {
                     {quizQuestions[currentQuestionIndex].question}
                   </h3>
 
-                  <div className="space-y-3 mb-6">
-                    {quizQuestions[currentQuestionIndex].options.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => !showQuizResult && handleQuizAnswer(index)}
-                        disabled={showQuizResult}
-                        className={`w-full p-4 rounded-lg text-left transition-all ${
-                          showQuizResult
-                            ? index === quizQuestions[currentQuestionIndex].correctAnswer
-                              ? 'bg-green-500 text-white'
-                              : index === selectedAnswer
-                              ? 'bg-red-500 text-white'
-                              : darkMode ? 'bg-gray-700' : 'bg-gray-100'
-                            : darkMode 
-                            ? 'bg-gray-700 hover:bg-gray-600' 
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {showQuizResult && (
-                            index === quizQuestions[currentQuestionIndex].correctAnswer ? (
-                              <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                            ) : index === selectedAnswer ? (
-                              <XCircle className="w-5 h-5 flex-shrink-0" />
-                            ) : null
-                          )}
-                          <span>{option}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+  {quizQuestions[currentQuestionIndex].options.map((imageUrl, index) => (
+    <button
+      key={index}
+      onClick={() => !showQuizResult && handleQuizAnswer(index)}
+      disabled={showQuizResult}
+      className={`relative p-4 rounded-xl border-4 transition-all ${
+        showQuizResult
+          ? index === quizQuestions[currentQuestionIndex].correctAnswer
+            ? 'border-green-500 bg-green-100 dark:bg-green-900'
+            : index === selectedAnswer
+            ? 'border-red-500 bg-red-100 dark:bg-red-900'
+            : 'border-gray-300 dark:border-gray-600'
+          : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:shadow-lg'
+      }`}
+    >
+      <div className="bg-white rounded-lg p-3 mb-2">
+        <img 
+          src={imageUrl} 
+          alt={`Option ${index + 1}`}
+          className="w-full h-40 object-contain"
+        />
+      </div>
+      
+      {showQuizResult && (
+        <div className="absolute top-2 right-2">
+          {index === quizQuestions[currentQuestionIndex].correctAnswer ? (
+            <div className="bg-green-500 rounded-full p-2">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+          ) : index === selectedAnswer ? (
+            <div className="bg-red-500 rounded-full p-2">
+              <XCircle className="w-6 h-6 text-white" />
+            </div>
+          ) : null}
+        </div>
+      )}
+    </button>
+  ))}
+</div>
 
                   {showQuizResult && (
                     <div className={`p-4 rounded-lg mb-6 ${
