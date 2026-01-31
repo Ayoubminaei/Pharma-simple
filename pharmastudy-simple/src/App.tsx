@@ -1630,11 +1630,6 @@ const startFlashcards = (chapterId?: string) => {
       </div>
     );
   }
-        
-        </div>
-      </div>
-    );
-  }
 
   // Main App Interface
   return (
