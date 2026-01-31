@@ -2331,7 +2331,7 @@ const startFlashcards = (chapterId?: string) => {
                     });
                     setShowMechanismModal(true);
                   }}
-                  
+                  >
             <button
             onClick={() => {
               setEditingMechanism({
