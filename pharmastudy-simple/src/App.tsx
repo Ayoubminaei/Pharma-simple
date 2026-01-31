@@ -89,7 +89,20 @@ const uploadImage = async (file: File, user: { id: string }): Promise<string | n
       });
     
     if (error) throw error;
-    // Image Upload Component
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('molecule-images')
+      .getPublicUrl(fileName);
+    
+    return publicUrl;
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload image');
+    return null;
+  }
+};
+// Image Upload Component
 const ImageUploader = ({ 
   value, 
   onChange, 
@@ -108,13 +121,11 @@ const ImageUploader = ({
     const file = e.target.files?.[0];
     if (!file || !user) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
     
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image must be less than 5MB');
       return;
@@ -135,7 +146,6 @@ const ImageUploader = ({
         📷 Image
       </label>
       
-      {/* Method Toggle */}
       <div className="flex gap-2 mb-3">
         <button
           type="button"
@@ -161,7 +171,6 @@ const ImageUploader = ({
         </button>
       </div>
       
-      {/* URL Input */}
       {uploadMethod === 'url' && (
         <input
           type="text"
@@ -176,7 +185,6 @@ const ImageUploader = ({
         />
       )}
       
-      {/* File Upload */}
       {uploadMethod === 'file' && (
         <div>
           <label className={`block w-full cursor-pointer ${
@@ -211,7 +219,6 @@ const ImageUploader = ({
         </div>
       )}
       
-      {/* Preview */}
       {value && (
         <div className="mt-3 relative">
           <div className="bg-white rounded-lg p-2">
@@ -232,19 +239,6 @@ const ImageUploader = ({
       )}
     </div>
   );
-};
-    
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('molecule-images')
-      .getPublicUrl(fileName);
-    
-    return publicUrl;
-  } catch (error) {
-    console.error('Upload error:', error);
-    alert('Failed to upload image');
-    return null;
-  }
 };
 
 export default function PharmaKinase() {
@@ -2818,31 +2812,17 @@ const startFlashcards = (chapterId?: string) => {
                               placeholder="Explain what happens in this step..."
                             />
 
-                            <input
-                              type="text"
+                               <ImageUploader
                               value={step.image_url || ''}
-                              onChange={(e) => {
+                              onChange={(url) => {
                                 const newSteps = [...editingMechanism.steps];
-                                newSteps[idx].image_url = e.target.value;
+                                newSteps[idx].image_url = url;
                                 setEditingMechanism({ ...editingMechanism, steps: newSteps });
                               }}
-                              className={`w-full px-3 py-2 rounded-lg border ${
-                                darkMode 
-                                  ? 'bg-gray-800 border-gray-700 text-white' 
-                                  : 'bg-white border-gray-200 text-gray-900'
-                              } focus:outline-none focus:border-purple-500`}
-                              placeholder="Image URL (optional)"
+                              darkMode={darkMode}
+                              user={user}
                             />
-
-                            {step.image_url && (
-                              <div className="bg-white rounded-lg p-2">
-                                <img 
-                                  src={step.image_url} 
-                                  alt="Preview"
-                                  className="max-h-32 mx-auto object-contain"
-                                />
-                              </div>
-                            )}
+                            
                           </div>
                         </div>
                       ))}
