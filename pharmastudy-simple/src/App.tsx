@@ -2991,7 +2991,7 @@ const startFlashcards = (chapterId?: string) => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
                         setEditingMolecule(viewingMolecule);
@@ -3000,12 +3000,26 @@ const startFlashcards = (chapterId?: string) => {
                         setShowMoleculeModal(false);
                       }}
                       className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                      title="Edit"
                     >
                       <Edit2 className="w-5 h-5" />
                     </button>
                     <button
+                      onClick={() => {
+                        if (confirm(`Delete ${viewingMolecule.name}?`)) {
+                          deleteMolecule(viewingMolecule.id);
+                          setShowMoleculeModal(false);
+                        }
+                      }}
+                      className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <button
                       onClick={() => setShowMoleculeModal(false)}
                       className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                      title="Close"
                     >
                       <XCircle className="w-6 h-6" />
                     </button>
