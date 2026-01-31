@@ -73,6 +73,37 @@ interface QuizQuestion {
   correctAnswer: number;
   explanation: string;
 }
+// Image upload helper
+const uploadImage = async (file: File, user: { id: string }): Promise<string | null> => {
+  if (!user) return null;
+  
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('molecule-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) throw error;
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('molecule-images')
+      .getPublicUrl(fileName);
+    
+    return publicUrl;
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload image');
+    return null;
+  }
+};
+
+export default function PharmaKinase() {
 
 // Main App
 export default function PharmaKinase() {
