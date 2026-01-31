@@ -2304,7 +2304,7 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               )}
             </div>
-          )}        </main>
+          )}        
       </div>
 
           {/* MECHANISMS VIEW */}
@@ -3287,6 +3287,7 @@ const startFlashcards = (chapterId?: string) => {
           </div>
         </div>
       )}
+        </main>
     </div>
   );
 }
