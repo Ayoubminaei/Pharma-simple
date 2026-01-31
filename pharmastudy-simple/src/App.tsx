@@ -2307,7 +2307,7 @@ const startFlashcards = (chapterId?: string) => {
           )}        </main>
       </div>
 
-{/* MECHANISMS VIEW */}
+          {/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
             <div>
               <div className="flex items-center justify-between mb-6">
@@ -2454,72 +2454,10 @@ const startFlashcards = (chapterId?: string) => {
             </div>
           )}
 
-          {/* MECHANISM DETAIL MODAL */}
-          {viewingMechanism && !showMechanismModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
-                {/* Header */}
-                <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <h2 className="text-2xl font-bold">{viewingMechanism.name}</h2>
-                  <button
-                    onClick={() => setViewingMechanism(null)}
-                    className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                  >
-                    <XCircle className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {viewingMechanism.description && (
-                    <p className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {viewingMechanism.description}
-                    </p>
-                  )}
-
-                  <div className="space-y-6">
-                    {viewingMechanism.steps.map((step, idx) => (
-                      <div
-                        key={idx}
-                        className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} rounded-xl p-6 border-l-4 border-purple-500`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold">
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            {step.title && (
-                              <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-                            )}
-                            {step.explanation && (
-                              <p className={`mb-4 whitespace-pre-wrap ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                {step.explanation}
-                              </p>
-                            )}
-                            {step.image_url && (
-                              <div className="bg-white rounded-lg p-4">
-                                <img 
-                                  src={step.image_url} 
-                                  alt={`Step ${idx + 1}`}
-                                  className="max-h-64 mx-auto object-contain"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* MECHANISM EDIT MODAL */}
           {showMechanismModal && editingMechanism && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
-                {/* Header */}
                 <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <h2 className="text-2xl font-bold">
                     {editingMechanism.id ? 'Edit Mechanism' : 'New Mechanism'}
@@ -2535,9 +2473,7 @@ const startFlashcards = (chapterId?: string) => {
                   </button>
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  {/* Basic Info */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Mechanism Name *
@@ -2572,7 +2508,6 @@ const startFlashcards = (chapterId?: string) => {
                     />
                   </div>
 
-                  {/* Steps */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-bold">Steps</h3>
@@ -2685,7 +2620,6 @@ const startFlashcards = (chapterId?: string) => {
                   </div>
                 </div>
 
-                {/* Footer */}
                 <div className={`flex gap-3 p-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <button
                     onClick={saveMechanism}
