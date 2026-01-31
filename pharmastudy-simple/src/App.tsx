@@ -89,6 +89,150 @@ const uploadImage = async (file: File, user: { id: string }): Promise<string | n
       });
     
     if (error) throw error;
+    // Image Upload Component
+const ImageUploader = ({ 
+  value, 
+  onChange, 
+  darkMode,
+  user
+}: { 
+  value: string; 
+  onChange: (url: string) => void; 
+  darkMode: boolean;
+  user: { id: string } | null;
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'file'>('url');
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB');
+      return;
+    }
+    
+    setUploading(true);
+    const url = await uploadImage(file, user);
+    setUploading(false);
+    
+    if (url) {
+      onChange(url);
+    }
+  };
+  
+  return (
+    <div>
+      <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+        📷 Image
+      </label>
+      
+      {/* Method Toggle */}
+      <div className="flex gap-2 mb-3">
+        <button
+          type="button"
+          onClick={() => setUploadMethod('url')}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+            uploadMethod === 'url'
+              ? 'bg-blue-500 text-white'
+              : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+          }`}
+        >
+          🔗 URL
+        </button>
+        <button
+          type="button"
+          onClick={() => setUploadMethod('file')}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+            uploadMethod === 'file'
+              ? 'bg-blue-500 text-white'
+              : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+          }`}
+        >
+          📤 Upload
+        </button>
+      </div>
+      
+      {/* URL Input */}
+      {uploadMethod === 'url' && (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full px-4 py-2 rounded-lg border-2 ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+              : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+          } focus:outline-none`}
+          placeholder="Paste image URL here"
+        />
+      )}
+      
+      {/* File Upload */}
+      {uploadMethod === 'file' && (
+        <div>
+          <label className={`block w-full cursor-pointer ${
+            darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+          } border-2 border-dashed rounded-lg p-8 text-center transition-all`}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+              disabled={uploading}
+            />
+            {uploading ? (
+              <div>
+                <FlaskConical className="w-12 h-12 mx-auto mb-3 text-blue-500 animate-pulse" />
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Uploading...
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Click to upload image
+                </p>
+                <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  PNG, JPG, GIF up to 5MB
+                </p>
+              </div>
+            )}
+          </label>
+        </div>
+      )}
+      
+      {/* Preview */}
+      {value && (
+        <div className="mt-3 relative">
+          <div className="bg-white rounded-lg p-2">
+            <img 
+              src={value} 
+              alt="Preview"
+              className="w-full h-32 object-contain"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
     
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
