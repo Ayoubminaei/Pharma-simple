@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Brain, PlayCircle, CheckCircle, XCircle, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2, Download, Share2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Moon, Sun, Home, BookOpen, FlaskConical, Menu, X, LogOut, Eye, EyeOff, Sparkles, Brain, PlayCircle, CheckCircle, XCircle, ChevronRight, ArrowLeft, Maximize2, ZoomIn, ZoomOut, Wand2, Download, Share2,Upload } from 'lucide-react';
 import { supabase } from './supabase';
 // Types
 interface User {
@@ -3224,34 +3224,12 @@ const startFlashcards = (chapterId?: string) => {
                     </div>
                   )}
                   
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      📷 Image URL
-                    </label>
-                    <input
-                      type="text"
-                      value={editingMolecule.image_url || ''}
-                      onChange={(e) => setEditingMolecule({ ...editingMolecule, image_url: e.target.value })}
-                      className={`w-full px-4 py-2 rounded-lg border-2 ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="Paste image URL here"
-                    />
-                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      💡 Right-click any image → Copy image address → Paste here
-                    </p>
-                    {editingMolecule.image_url && (
-                      <div className="mt-2 bg-white rounded-lg p-2">
-                        <img 
-                          src={editingMolecule.image_url} 
-                          alt="Preview"
-                          className="w-full h-32 object-contain"
-                        />
-                      </div>
-                    )}
-                  </div>
+                    <ImageUploader
+                    value={editingMolecule.image_url || ''}
+                    onChange={(url) => setEditingMolecule({ ...editingMolecule, image_url: url })}
+                    darkMode={darkMode}
+                    user={user}
+                  />
 
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
