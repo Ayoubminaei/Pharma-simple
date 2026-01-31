@@ -2818,31 +2818,17 @@ const startFlashcards = (chapterId?: string) => {
                               placeholder="Explain what happens in this step..."
                             />
 
-                            <input
-                              type="text"
+                               <ImageUploader
                               value={step.image_url || ''}
-                              onChange={(e) => {
+                              onChange={(url) => {
                                 const newSteps = [...editingMechanism.steps];
-                                newSteps[idx].image_url = e.target.value;
+                                newSteps[idx].image_url = url;
                                 setEditingMechanism({ ...editingMechanism, steps: newSteps });
                               }}
-                              className={`w-full px-3 py-2 rounded-lg border ${
-                                darkMode 
-                                  ? 'bg-gray-800 border-gray-700 text-white' 
-                                  : 'bg-white border-gray-200 text-gray-900'
-                              } focus:outline-none focus:border-purple-500`}
-                              placeholder="Image URL (optional)"
+                              darkMode={darkMode}
+                              user={user}
                             />
-
-                            {step.image_url && (
-                              <div className="bg-white rounded-lg p-2">
-                                <img 
-                                  src={step.image_url} 
-                                  alt="Preview"
-                                  className="max-h-32 mx-auto object-contain"
-                                />
-                              </div>
-                            )}
+                            
                           </div>
                         </div>
                       ))}
