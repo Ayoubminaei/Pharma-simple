@@ -2356,6 +2356,7 @@ const startFlashcards = (chapterId?: string) => {
                         setViewingMechanism(mechanism);
                       }}
                     >
+                      <div className="flex-1 overflow-y-auto p-4 md:p-6">
                       <div className="flex items-start justify-between mb-4">
                         <h3 className="text-xl font-bold">{mechanism.name}</h3>
                         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -2456,8 +2457,8 @@ const startFlashcards = (chapterId?: string) => {
 
           {/* MECHANISM EDIT MODAL */}
           {showMechanismModal && editingMechanism && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
+             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[95vh] min-h-[40vh] flex flex-col shadow-2xl`}>
                 <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <h2 className="text-2xl font-bold">
                     {editingMechanism.id ? 'Edit Mechanism' : 'New Mechanism'}
