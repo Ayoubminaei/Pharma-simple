@@ -2304,10 +2304,8 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               )}
             </div>
-          )}        </main>
-      </div>
-
-          {/* MECHANISMS VIEW */}
+          )}      
+                  {/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
             <div>
               <div className="flex items-center justify-between mb-6">
@@ -2394,6 +2392,9 @@ const startFlashcards = (chapterId?: string) => {
               )}
             </div>
           )}
+        
+        </main>
+      </div>
 
           {/* MECHANISM DETAIL MODAL */}
           {viewingMechanism && !showMechanismModal && (
