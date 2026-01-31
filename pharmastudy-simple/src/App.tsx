@@ -2331,12 +2331,32 @@ const startFlashcards = (chapterId?: string) => {
                     });
                     setShowMechanismModal(true);
                   }}
+                  
             <button
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"           
-                  >
-                  <Plus className="w-5 h-5" />
-                  Add Mechanism
-                </button>
+            onClick={() => {
+              setEditingMechanism({
+                id: '',
+                user_id: user?.id || '',
+                chapter_id: '',
+                name: '',
+                description: '',
+                steps: [{
+                  id: '',
+                  mechanism_id: '',
+                  step_number: 1,
+                  title: '',
+                  explanation: '',
+                  image_url: ''
+                }]
+              });
+              setShowMechanismModal(true);
+            }}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            Add Mechanism
+          </button>
+                  
               </div>
 
               {mechanisms.length === 0 ? (
