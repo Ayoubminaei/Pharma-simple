@@ -874,101 +874,74 @@ const saveMolecule = async () => {
   };
 
   // Quiz functions
-  const generateQuiz = () => {
+const startQuiz = () => {
     const allMolecules = chapters.flatMap(c => 
       c.topics.flatMap(t => t.molecules)
-    );
+    ).filter(m => m.image_url);
     
     if (allMolecules.length < 4) {
-      alert('You need at least 4 molecules to generate a quiz!');
+      alert('You need at least 4 molecules with images to start the quiz!');
       return;
     }
     
-    const questions: QuizQuestion[] = [];
-    const usedMolecules = new Set<string>();
-    const numQuestions = Math.min(5, allMolecules.length);
+    const numQuestions = Math.min(10, allMolecules.length);
+    const shuffledMolecules = [...allMolecules].sort(() => Math.random() - 0.5);
     
-    for (let i = 0; i < numQuestions; i++) {
-      let molecule;
-      do {
-        molecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
-      } while (usedMolecules.has(molecule.id));
+    const questions = shuffledMolecules.slice(0, numQuestions).map(correctMolecule => {
+      const wrongOptions = allMolecules
+        .filter(m => m.id !== correctMolecule.id && m.image_url)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
       
-      usedMolecules.add(molecule.id);
+      const options = [correctMolecule, ...wrongOptions].sort(() => Math.random() - 0.5);
       
-      if (Math.random() > 0.5) {
-        const otherMolecules = allMolecules.filter(m => m.id !== molecule.id);
-        const wrongAnswers = [];
-        for (let j = 0; j < 3; j++) {
-          const wrong = otherMolecules[Math.floor(Math.random() * otherMolecules.length)];
-          if (!wrongAnswers.includes(wrong.name)) {
-            wrongAnswers.push(wrong.name);
-          }
-        }
-        
-        const options = [molecule.name, ...wrongAnswers].sort(() => Math.random() - 0.5);
-        
-        questions.push({
-          question: `What is the name of this molecule?\nFormula: ${molecule.formula}`,
-          options,
-          correctAnswer: options.indexOf(molecule.name),
-          explanation: `This is ${molecule.name}.`
-        });
-      } else {
-        const otherMolecules = allMolecules.filter(m => m.id !== molecule.id);
-        const wrongAnswers = [];
-        for (let j = 0; j < 3; j++) {
-          const wrong = otherMolecules[Math.floor(Math.random() * otherMolecules.length)];
-          if (!wrongAnswers.includes(wrong.formula)) {
-            wrongAnswers.push(wrong.formula);
-          }
-        }
-        
-        const options = [molecule.formula, ...wrongAnswers].sort(() => Math.random() - 0.5);
-        
-        questions.push({
-          question: `What is the molecular formula of ${molecule.name}?`,
-          options,
-          correctAnswer: options.indexOf(molecule.formula),
-          explanation: `${molecule.name} has the formula ${molecule.formula}.`
-        });
-      }
-    }
+      return {
+        correctMolecule,
+        options,
+        answered: false,
+        correct: false
+      };
+    });
     
     setQuizQuestions(questions);
     setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
+    setQuizScore(0);
     setShowQuizResult(false);
-    setQuizScore({ correct: 0, total: questions.length });
     setQuizActive(true);
   };
-
-  const handleQuizAnswer = (answerIndex: number) => {
-    setSelectedAnswer(answerIndex);
-    setShowQuizResult(true);
+  const answerQuestion = (selectedMolecule: Molecule) => {
+    const currentQuestion = quizQuestions[currentQuestionIndex];
+    const isCorrect = selectedMolecule.id === currentQuestion.correctMolecule.id;
     
-    if (answerIndex === quizQuestions[currentQuestionIndex].correctAnswer) {
-      setQuizScore(prev => ({ ...prev, correct: prev.correct + 1 }));
+    const updatedQuestions = [...quizQuestions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
+      answered: true,
+      correct: isCorrect
+    };
+    setQuizQuestions(updatedQuestions);
+    
+    if (isCorrect) {
+      setQuizScore(prev => prev + 1);
     }
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestionIndex < quizQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setShowQuizResult(false);
-    } else {
-      setQuizActive(false);
-    }
+    
+    setTimeout(() => {
+      if (currentQuestionIndex < quizQuestions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+      } else {
+        setShowQuizResult(true);
+      }
+    }, 1000);
   };
 
   const restartQuiz = () => {
+    setQuizActive(false);
+    setQuizQuestions([]);
     setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
+    setQuizScore(0);
     setShowQuizResult(false);
-    setQuizScore({ correct: 0, total: quizQuestions.length });
-    setQuizActive(true);
   };
+  
   // Flashcard functions
 const startFlashcards = (chapterId?: string) => {
     let molecules;
@@ -2304,7 +2277,7 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               )}
             </div>
-          )}        
+          )}        </main>
       </div>
 
           {/* MECHANISMS VIEW */}
