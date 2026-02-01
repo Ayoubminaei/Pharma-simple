@@ -277,7 +277,7 @@ const [resetSent, setResetSent] = useState(false);
   // UI states
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz' | 'flashcards' | 'mechanisms' | 'histology'>('dashboard');
   const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
   // Navigation states - 3-LEVEL HIERARCHY
@@ -351,6 +351,7 @@ const [showHistologyModal, setShowHistologyModal] = useState(false);
         });
         await loadChapters();
         loadMechanisms();
+        loadHistologyTopics();
       }
     } catch (error) {
       console.error('Session check error:', error);
