@@ -3152,7 +3152,11 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               </div>
             </div>
-          )}
+          )}    
+          </div>
+        </div>
+      )}
+      
 {/* HISTOLOGY VIEW */}
           {activeTab === 'histology' && (
             <div>
