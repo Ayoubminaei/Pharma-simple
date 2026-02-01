@@ -640,11 +640,13 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
   };
 
   // Save histology slide
-  const saveHistologySlide = async () => {
+const saveHistologySlide = async () => {
     if (!selectedHistologyTopic || !editingHistologySlide?.name?.trim()) {
       alert('Please enter a slide name');
       return;
     }
+    
+    const topicId = selectedHistologyTopic.id;
     
     try {
       const slideData = {
@@ -669,13 +671,31 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
           .from('histology_slides')
           .insert([{
             ...slideData,
-            topic_id: selectedHistologyTopic.id
+            topic_id: topicId
           }]);
         
         if (error) throw error;
       }
       
       await loadHistologyTopics();
+      
+      // Mettre à jour la référence du topic sélectionné
+      const { data: updatedTopicData } = await supabase
+        .from('histology_topics')
+        .select('*')
+        .eq('id', topicId)
+        .single();
+      
+      if (updatedTopicData) {
+        const { data: slides } = await supabase
+          .from('histology_slides')
+          .select('*')
+          .eq('topic_id', topicId)
+          .order('created_at', { ascending: true });
+        
+        setSelectedHistologyTopic({ ...updatedTopicData, slides: slides || [] });
+      }
+      
       setShowHistologyModal(false);
       setEditingHistologySlide(null);
     } catch (error) {
@@ -1858,16 +1878,19 @@ const startFlashcards = (chapterId?: string) => {
         {/* Sidebar */}
         <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static w-64 h-[calc(100vh-57px)] ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r transition-transform z-40 overflow-y-auto`}>
           <nav className="p-4 space-y-2">
-            <button
-              onClick={() => setActiveTab('dashboard')}
+             <button
+              onClick={() => {
+                setActiveTab('histology');
+                setSelectedHistologyTopic(null);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeTab === 'dashboard'
+                activeTab === 'histology'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
                   : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <Home className="w-5 h-5" />
-              <span className="font-medium">Dashboard</span>
+              <Maximize2 className="w-5 h-5" />
+              <span className="font-medium">Histology</span>
             </button>
 
             <button
