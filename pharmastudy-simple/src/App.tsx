@@ -3950,6 +3950,7 @@ const startFlashcards = (chapterId?: string) => {
                 </div>
               </div>
             )}
+            
 {/* HISTOLOGY TOPIC EDIT MODAL */}
       {editingHistologyTopic && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -4200,7 +4201,5 @@ const startFlashcards = (chapterId?: string) => {
             
           </div>
         </div>
-      )}
-    </div>
   );
 }
