@@ -73,6 +73,25 @@ interface QuizQuestion {
   correctAnswer: number;
   explanation: string;
 }
+interface HistologySlide {
+  id: string;
+  topic_id: string;
+  name: string;
+  image_url?: string;
+  explanation: string;
+  magnification?: string;
+  staining?: string;
+  created_at?: string;
+}
+
+interface HistologyTopic {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  slides: HistologySlide[];
+  created_at?: string;
+}
 // Image upload helper
 const uploadImage = async (file: File, user: { id: string }): Promise<string | null> => {
   if (!user) return null;
@@ -304,6 +323,14 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
+// Histology states
+const [histologyTopics, setHistologyTopics] = useState<HistologyTopic[]>([]);
+const [selectedHistologyTopic, setSelectedHistologyTopic] = useState<HistologyTopic | null>(null);
+const [editingHistologyTopic, setEditingHistologyTopic] = useState<HistologyTopic | null>(null);
+const [editingHistologySlide, setEditingHistologySlide] = useState<HistologySlide | null>(null);
+const [viewingHistologySlide, setViewingHistologySlide] = useState<HistologySlide | null>(null);
+const [showHistologyModal, setShowHistologyModal] = useState(false);
+  
   // Check session on mount
   useEffect(() => {
     checkSession();
@@ -520,6 +547,159 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
       console.error('Error deleting mechanism:', error);
     }
   };
+
+  // Load histology topics
+const loadHistologyTopics = async () => {
+  if (!user) return;
+  
+  try {
+    const { data: topicsData, error: topicsError } = await supabase
+      .from('histology_topics')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
+    
+    if (topicsError) throw topicsError;
+    
+    const topicsWithSlides = await Promise.all(
+      (topicsData || []).map(async (topic) => {
+        const { data: slides, error: slidesError } = await supabase
+          .from('histology_slides')
+          .select('*')
+          .eq('topic_id', topic.id)
+          .order('created_at', { ascending: true });
+        
+        if (slidesError) throw slidesError;
+        
+        return { ...topic, slides: slides || [] };
+      })
+    );
+    
+    setHistologyTopics(topicsWithSlides);
+  } catch (error) {
+    console.error('Error loading histology:', error);
+  }
+};
+
+// Save histology topic
+const saveHistologyTopic = async () => {
+  if (!user || !editingHistologyTopic?.name?.trim()) {
+    alert('Please enter a topic name');
+    return;
+  }
+  
+  try {
+    if (editingHistologyTopic.id) {
+      // Update
+      const { error } = await supabase
+        .from('histology_topics')
+        .update({
+          name: editingHistologyTopic.name.trim(),
+          description: editingHistologyTopic.description || ''
+        })
+        .eq('id', editingHistologyTopic.id);
+      
+      if (error) throw error;
+    } else {
+      // Insert
+      const { error } = await supabase
+        .from('histology_topics')
+        .insert([{
+          user_id: user.id,
+          name: editingHistologyTopic.name.trim(),
+          description: editingHistologyTopic.description || ''
+        }]);
+      
+      if (error) throw error;
+    }
+    
+    await loadHistologyTopics();
+    setEditingHistologyTopic(null);
+  } catch (error) {
+    console.error('Error saving topic:', error);
+    alert('Failed to save topic');
+  }
+};
+
+// Delete histology topic
+const deleteHistologyTopic = async (id: string) => {
+  if (!confirm('Delete this topic and all its slides?')) return;
+  
+  try {
+    const { error } = await supabase
+      .from('histology_topics')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    await loadHistologyTopics();
+  } catch (error) {
+    console.error('Error deleting topic:', error);
+  }
+};
+
+// Save histology slide
+const saveHistologySlide = async () => {
+  if (!selectedHistologyTopic || !editingHistologySlide?.name?.trim()) {
+    alert('Please enter a slide name');
+    return;
+  }
+  
+  try {
+    const slideData = {
+      name: editingHistologySlide.name.trim(),
+      image_url: editingHistologySlide.image_url || null,
+      explanation: editingHistologySlide.explanation || '',
+      magnification: editingHistologySlide.magnification || null,
+      staining: editingHistologySlide.staining || null
+    };
+    
+    if (editingHistologySlide.id) {
+      // Update
+      const { error } = await supabase
+        .from('histology_slides')
+        .update(slideData)
+        .eq('id', editingHistologySlide.id);
+      
+      if (error) throw error;
+    } else {
+      // Insert
+      const { error } = await supabase
+        .from('histology_slides')
+        .insert([{
+          ...slideData,
+          topic_id: selectedHistologyTopic.id
+        }]);
+      
+      if (error) throw error;
+    }
+    
+    await loadHistologyTopics();
+    setShowHistologyModal(false);
+    setEditingHistologySlide(null);
+  } catch (error) {
+    console.error('Error saving slide:', error);
+    alert('Failed to save slide');
+  }
+};
+
+// Delete histology slide
+const deleteHistologySlide = async (id: string) => {
+  if (!confirm('Delete this slide?')) return;
+  
+  try {
+    const { error } = await supabase
+      .from('histology_slides')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    await loadHistologyTopics();
+    setViewingHistologySlide(null);
+  } catch (error) {
+    console.error('Error deleting slide:', error);
+  }
+};
 
   // Auth handlers
   const handleAuth = async (e: React.FormEvent) => {
