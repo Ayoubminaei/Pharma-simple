@@ -340,6 +340,13 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
   useEffect(() => {
     localStorage.setItem('pharmaDarkMode', darkMode.toString());
   }, [darkMode]);
+  // Reload histology when entering the tab
+  useEffect(() => {
+    if (activeTab === 'histology' && user) {
+      loadHistologyTopics();
+      setSelectedHistologyTopic(null);
+    }
+  }, [activeTab]);
 
  const checkSession = async () => {
     try {
