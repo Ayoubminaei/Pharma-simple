@@ -1926,7 +1926,20 @@ const startFlashcards = (chapterId?: string) => {
             >
               <FlaskConical className="w-5 h-5" />
               <span className="font-medium">Mechanisms</span>
-            </button>      </nav>
+            </button>     
+            
+          <button
+              onClick={() => setActiveTab('histology')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'histology'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Maximize2 className="w-5 h-5" />
+              <span className="font-medium">Histology</span>
+            </button>
+          </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-900 to-teal-900' : 'bg-gradient-to-br from-blue-50 to-teal-50'}`}>
