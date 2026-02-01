@@ -3153,7 +3153,169 @@ const startFlashcards = (chapterId?: string) => {
               </div>
             </div>
           )}
+{/* HISTOLOGY VIEW */}
+          {activeTab === 'histology' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold">🔬 Histology</h1>
+                {!selectedHistologyTopic && (
+                  <button
+                    onClick={() => {
+                      setEditingHistologyTopic({
+                        id: '',
+                        user_id: user?.id || '',
+                        name: '',
+                        description: '',
+                        slides: []
+                      });
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Topic
+                  </button>
+                )}
+              </div>
 
+              {/* TOPICS LIST */}
+              {!selectedHistologyTopic ? (
+                <div>
+                  {histologyTopics.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <Maximize2 className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                      <h3 className="text-xl font-bold mb-2">No histology topics yet</h3>
+                      <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Create your first histology topic!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {histologyTopics.map(topic => (
+                        <div
+                          key={topic.id}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                          onClick={() => setSelectedHistologyTopic(topic)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-xl font-bold">{topic.name}</h3>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setEditingHistologyTopic(topic)}
+                                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteHistologyTopic(topic.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {topic.description && (
+                            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {topic.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                              {topic.slides.length} slides
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* SLIDES LIST */
+                <div>
+                  <button
+                    onClick={() => setSelectedHistologyTopic(null)}
+                    className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                    } transition-colors shadow`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Topics</span>
+                  </button>
+
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">{selectedHistologyTopic.name}</h2>
+                    <button
+                      onClick={() => {
+                        setEditingHistologySlide({
+                          id: '',
+                          topic_id: selectedHistologyTopic.id,
+                          name: '',
+                          explanation: '',
+                          image_url: '',
+                          magnification: '',
+                          staining: ''
+                        });
+                        setShowHistologyModal(true);
+                      }}
+                      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Slide
+                    </button>
+                  </div>
+
+                  {selectedHistologyTopic.slides.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <h3 className="text-xl font-bold mb-2">No slides yet</h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Add your first histology slide!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {selectedHistologyTopic.slides.map(slide => (
+                        <div
+                          key={slide.id}
+                          className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-blue-500 cursor-pointer`}
+                          onClick={() => setViewingHistologySlide(slide)}
+                        >
+                          {slide.image_url && (
+                            <div className="relative mb-3 bg-white rounded-lg p-2">
+                              <img 
+                                src={slide.image_url} 
+                                alt={slide.name}
+                                className="w-full h-48 object-cover rounded"
+                              />
+                            </div>
+                          )}
+                          
+                          <h4 className="font-bold mb-2">{slide.name}</h4>
+                          
+                          {slide.staining && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              🎨 {slide.staining}
+                            </p>
+                          )}
+                          
+                          {slide.magnification && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              🔍 {slide.magnification}
+                            </p>
+                          )}
+                          
+                          <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} line-clamp-2`}>
+                            {slide.explanation}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+      
 {/* MOLECULE DETAIL MODAL - FULL SCREEN WITH ZOOM */}
           {showMoleculeModal && viewingMolecule && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
