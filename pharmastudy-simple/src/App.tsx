@@ -73,6 +73,26 @@ interface QuizQuestion {
   correctAnswer: number;
   explanation: string;
 }
+interface HistologySlide {
+  id: string;
+  topic_id: string;
+  name: string;
+  image_url?: string;
+  explanation: string;
+  magnification?: string;
+  staining?: string;
+  created_at?: string;
+}
+
+interface HistologyTopic {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  slides: HistologySlide[];
+  created_at?: string;
+}
+
 // Image upload helper
 const uploadImage = async (file: File, user: { id: string }): Promise<string | null> => {
   if (!user) return null;
@@ -258,7 +278,7 @@ const [resetSent, setResetSent] = useState(false);
   // UI states
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz' | 'flashcards' | 'mechanisms' | 'histology'>('dashboard');
   const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
   // Navigation states - 3-LEVEL HIERARCHY
@@ -304,6 +324,14 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
+// Histology states
+  const [histologyTopics, setHistologyTopics] = useState<HistologyTopic[]>([]);
+  const [selectedHistologyTopic, setSelectedHistologyTopic] = useState<HistologyTopic | null>(null);
+  const [editingHistologyTopic, setEditingHistologyTopic] = useState<HistologyTopic | null>(null);
+  const [editingHistologySlide, setEditingHistologySlide] = useState<HistologySlide | null>(null);
+  const [viewingHistologySlide, setViewingHistologySlide] = useState<HistologySlide | null>(null);
+  const [showHistologyModal, setShowHistologyModal] = useState(false);
+  
   // Check session on mount
   useEffect(() => {
     checkSession();
@@ -313,7 +341,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
     localStorage.setItem('pharmaDarkMode', darkMode.toString());
   }, [darkMode]);
 
-  const checkSession = async () => {
+ const checkSession = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -324,6 +352,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
         });
         await loadChapters();
         loadMechanisms();
+        loadHistologyTopics();
       }
     } catch (error) {
       console.error('Session check error:', error);
@@ -518,6 +547,158 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
       await loadMechanisms();
     } catch (error) {
       console.error('Error deleting mechanism:', error);
+    }
+  };
+  // Load histology topics
+  const loadHistologyTopics = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: topicsData, error: topicsError } = await supabase
+        .from('histology_topics')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      
+      if (topicsError) throw topicsError;
+      
+      const topicsWithSlides = await Promise.all(
+        (topicsData || []).map(async (topic) => {
+          const { data: slides, error: slidesError } = await supabase
+            .from('histology_slides')
+            .select('*')
+            .eq('topic_id', topic.id)
+            .order('created_at', { ascending: true });
+          
+          if (slidesError) throw slidesError;
+          
+          return { ...topic, slides: slides || [] };
+        })
+      );
+      
+      setHistologyTopics(topicsWithSlides);
+    } catch (error) {
+      console.error('Error loading histology:', error);
+    }
+  };
+
+  // Save histology topic
+  const saveHistologyTopic = async () => {
+    if (!user || !editingHistologyTopic?.name?.trim()) {
+      alert('Please enter a topic name');
+      return;
+    }
+    
+    try {
+      if (editingHistologyTopic.id) {
+        // Update
+        const { error } = await supabase
+          .from('histology_topics')
+          .update({
+            name: editingHistologyTopic.name.trim(),
+            description: editingHistologyTopic.description || ''
+          })
+          .eq('id', editingHistologyTopic.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('histology_topics')
+          .insert([{
+            user_id: user.id,
+            name: editingHistologyTopic.name.trim(),
+            description: editingHistologyTopic.description || ''
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadHistologyTopics();
+      setEditingHistologyTopic(null);
+    } catch (error) {
+      console.error('Error saving topic:', error);
+      alert('Failed to save topic');
+    }
+  };
+
+  // Delete histology topic
+  const deleteHistologyTopic = async (id: string) => {
+    if (!confirm('Delete this topic and all its slides?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('histology_topics')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadHistologyTopics();
+    } catch (error) {
+      console.error('Error deleting topic:', error);
+    }
+  };
+
+  // Save histology slide
+  const saveHistologySlide = async () => {
+    if (!selectedHistologyTopic || !editingHistologySlide?.name?.trim()) {
+      alert('Please enter a slide name');
+      return;
+    }
+    
+    try {
+      const slideData = {
+        name: editingHistologySlide.name.trim(),
+        image_url: editingHistologySlide.image_url || null,
+        explanation: editingHistologySlide.explanation || '',
+        magnification: editingHistologySlide.magnification || null,
+        staining: editingHistologySlide.staining || null
+      };
+      
+      if (editingHistologySlide.id) {
+        // Update
+        const { error } = await supabase
+          .from('histology_slides')
+          .update(slideData)
+          .eq('id', editingHistologySlide.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('histology_slides')
+          .insert([{
+            ...slideData,
+            topic_id: selectedHistologyTopic.id
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadHistologyTopics();
+      setShowHistologyModal(false);
+      setEditingHistologySlide(null);
+    } catch (error) {
+      console.error('Error saving slide:', error);
+      alert('Failed to save slide');
+    }
+  };
+
+  // Delete histology slide
+  const deleteHistologySlide = async (id: string) => {
+    if (!confirm('Delete this slide?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('histology_slides')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadHistologyTopics();
+      setViewingHistologySlide(null);
+    } catch (error) {
+      console.error('Error deleting slide:', error);
     }
   };
 
@@ -1745,7 +1926,20 @@ const startFlashcards = (chapterId?: string) => {
             >
               <FlaskConical className="w-5 h-5" />
               <span className="font-medium">Mechanisms</span>
-            </button>      </nav>
+            </button> 
+            
+          <button
+              onClick={() => setActiveTab('histology')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'histology'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Maximize2 className="w-5 h-5" />
+              <span className="font-medium">Histology</span>
+            </button>
+          </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-900 to-teal-900' : 'bg-gradient-to-br from-blue-50 to-teal-50'}`}>
@@ -2724,7 +2918,169 @@ const startFlashcards = (chapterId?: string) => {
               )}
             </div>
           )}
-        
+{/* HISTOLOGY VIEW */}
+          {activeTab === 'histology' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold">🔬 Histology</h1>
+                {!selectedHistologyTopic && (
+                  <button
+                    onClick={() => {
+                      setEditingHistologyTopic({
+                        id: '',
+                        user_id: user?.id || '',
+                        name: '',
+                        description: '',
+                        slides: []
+                      });
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Topic
+                  </button>
+                )}
+              </div>
+
+              {/* TOPICS LIST */}
+              {!selectedHistologyTopic ? (
+                <div>
+                  {histologyTopics.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <Maximize2 className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                      <h3 className="text-xl font-bold mb-2">No histology topics yet</h3>
+                      <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Create your first histology topic!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {histologyTopics.map(topic => (
+                        <div
+                          key={topic.id}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                          onClick={() => setSelectedHistologyTopic(topic)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-xl font-bold">{topic.name}</h3>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setEditingHistologyTopic(topic)}
+                                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteHistologyTopic(topic.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {topic.description && (
+                            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {topic.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                              {topic.slides.length} slides
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* SLIDES LIST */
+                <div>
+                  <button
+                    onClick={() => setSelectedHistologyTopic(null)}
+                    className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                    } transition-colors shadow`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Topics</span>
+                  </button>
+
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">{selectedHistologyTopic.name}</h2>
+                    <button
+                      onClick={() => {
+                        setEditingHistologySlide({
+                          id: '',
+                          topic_id: selectedHistologyTopic.id,
+                          name: '',
+                          explanation: '',
+                          image_url: '',
+                          magnification: '',
+                          staining: ''
+                        });
+                        setShowHistologyModal(true);
+                      }}
+                      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Slide
+                    </button>
+                  </div>
+
+                  {selectedHistologyTopic.slides.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <h3 className="text-xl font-bold mb-2">No slides yet</h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Add your first histology slide!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {selectedHistologyTopic.slides.map(slide => (
+                        <div
+                          key={slide.id}
+                          className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 border-transparent hover:border-blue-500 cursor-pointer`}
+                          onClick={() => setViewingHistologySlide(slide)}
+                        >
+                          {slide.image_url && (
+                            <div className="relative mb-3 bg-white rounded-lg p-2">
+                              <img 
+                                src={slide.image_url} 
+                                alt={slide.name}
+                                className="w-full h-48 object-cover rounded"
+                              />
+                            </div>
+                          )}
+                          
+                          <h4 className="font-bold mb-2">{slide.name}</h4>
+                          
+                          {slide.staining && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              🎨 {slide.staining}
+                            </p>
+                          )}
+                          
+                          {slide.magnification && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              🔍 {slide.magnification}
+                            </p>
+                          )}
+                          
+                          <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} line-clamp-2`}>
+                            {slide.explanation}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
         </main>
       </div>
 
@@ -3598,6 +3954,254 @@ const startFlashcards = (chapterId?: string) => {
           </div>
         </div>
       )}
+{/* HISTOLOGY TOPIC EDIT MODAL */}
+      {editingHistologyTopic && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-md p-6`}>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingHistologyTopic.id ? 'Edit Topic' : 'New Topic'}
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Topic Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingHistologyTopic.name}
+                  onChange={(e) => setEditingHistologyTopic({ ...editingHistologyTopic, name: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="e.g., Epithelial Tissue"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description
+                </label>
+                <textarea
+                  value={editingHistologyTopic.description || ''}
+                  onChange={(e) => setEditingHistologyTopic({ ...editingHistologyTopic, description: e.target.value })}
+                  rows={3}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="Brief description..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveHistologyTopic}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                💾 Save Topic
+              </button>
+              <button
+                onClick={() => setEditingHistologyTopic(null)}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HISTOLOGY SLIDE EDIT MODAL */}
+      {showHistologyModal && editingHistologySlide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6`}>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingHistologySlide.id ? 'Edit Slide' : 'New Slide'}
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Slide Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingHistologySlide.name}
+                  onChange={(e) => setEditingHistologySlide({ ...editingHistologySlide, name: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-blue-500`}
+                  placeholder="e.g., Simple Squamous Epithelium"
+                  autoFocus
+                />
+              </div>
+
+              <ImageUploader
+                value={editingHistologySlide.image_url || ''}
+                onChange={(url) => setEditingHistologySlide({ ...editingHistologySlide, image_url: url })}
+                darkMode={darkMode}
+                user={user}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    🔍 Magnification
+                  </label>
+                  <input
+                    type="text"
+                    value={editingHistologySlide.magnification || ''}
+                    onChange={(e) => setEditingHistologySlide({ ...editingHistologySlide, magnification: e.target.value })}
+                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                    } focus:outline-none focus:border-blue-500`}
+                    placeholder="e.g., 40x, 100x"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    🎨 Staining
+                  </label>
+                  <input
+                    type="text"
+                    value={editingHistologySlide.staining || ''}
+                    onChange={(e) => setEditingHistologySlide({ ...editingHistologySlide, staining: e.target.value })}
+                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                    } focus:outline-none focus:border-blue-500`}
+                    placeholder="e.g., H&E, PAS"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  📝 Explanation
+                </label>
+                <textarea
+                  value={editingHistologySlide.explanation}
+                  onChange={(e) => setEditingHistologySlide({ ...editingHistologySlide, explanation: e.target.value })}
+                  rows={8}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-blue-500`}
+                  placeholder="Describe what can be observed in this slide..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveHistologySlide}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                💾 Save Slide
+              </button>
+              <button
+                onClick={() => {
+                  setShowHistologyModal(false);
+                  setEditingHistologySlide(null);
+                }}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HISTOLOGY SLIDE VIEW MODAL */}
+      {viewingHistologySlide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
+            <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className="text-2xl font-bold">{viewingHistologySlide.name}</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingHistologySlide(viewingHistologySlide);
+                    setShowHistologyModal(true);
+                    setViewingHistologySlide(null);
+                  }}
+                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  title="Edit"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete ${viewingHistologySlide.name}?`)) {
+                      deleteHistologySlide(viewingHistologySlide.id);
+                    }
+                  }}
+                  className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setViewingHistologySlide(null)}
+                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {viewingHistologySlide.image_url && (
+                <div className="bg-white rounded-xl p-4 mb-6">
+                  <img 
+                    src={viewingHistologySlide.image_url} 
+                    alt={viewingHistologySlide.name}
+                    className="w-full max-h-96 object-contain"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {viewingHistologySlide.staining && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-gray-500">🎨 Staining</h3>
+                    <p>{viewingHistologySlide.staining}</p>
+                  </div>
+                )}
+
+                {viewingHistologySlide.magnification && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-gray-500">🔍 Magnification</h3>
+                    <p>{viewingHistologySlide.magnification}</p>
+                  </div>
+                )}
+
+                {viewingHistologySlide.explanation && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-gray-500">📝 Explanation</h3>
+                    <p className="whitespace-pre-wrap">{viewingHistologySlide.explanation}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
     </div>
   );
 }
