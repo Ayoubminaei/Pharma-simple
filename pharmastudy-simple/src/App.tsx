@@ -46,10 +46,19 @@ interface MechanismStep {
 interface Mechanism {
   id: string;
   user_id: string;
-  chapter_id: string;
+  topic_id: string;
   name: string;
   description?: string;
   steps: MechanismStep[];
+  created_at?: string;
+}
+
+interface MechanismTopic {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  mechanisms: Mechanism[];
   created_at?: string;
 }
 
@@ -287,10 +296,13 @@ const [resetSent, setResetSent] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   
   // Data states
+// Data states
   const [chapters, setChapters] = useState<Chapter[]>([]);
-const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
+  const [mechanismTopics, setMechanismTopics] = useState<MechanismTopic[]>([]);
+  const [selectedMechanismTopic, setSelectedMechanismTopic] = useState<MechanismTopic | null>(null);
   const [showMechanismModal, setShowMechanismModal] = useState(false);
   const [editingMechanism, setEditingMechanism] = useState<Mechanism | null>(null);
+  const [editingMechanismTopic, setEditingMechanismTopic] = useState<MechanismTopic | null>(null);
   const [viewingMechanism, setViewingMechanism] = useState<Mechanism | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -348,14 +360,15 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
     }
   }, [activeTab]);
 
-  // Reload mechanisms when entering the tab
+// Reload mechanisms when entering the tab
   useEffect(() => {
     if (activeTab === 'mechanisms' && user) {
-      loadMechanisms();
+      loadMechanismTopics();
+      setSelectedMechanismTopic(null);
     }
   }, [activeTab]);
 
- const checkSession = async () => {
+const checkSession = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -365,7 +378,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
           name: session.user.user_metadata?.full_name || session.user.email
         });
         await loadChapters();
-        loadMechanisms();
+        loadMechanismTopics();
         loadHistologyTopics();
       }
     } catch (error) {
@@ -428,41 +441,109 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
       setChapters([]);
     }
   };
-  // Load mechanisms
-  const loadMechanisms = async () => {
+// Load mechanism topics
+  const loadMechanismTopics = async () => {
     if (!user) return;
     
     try {
-      const { data: mechanismsData, error: mechError } = await supabase
-        .from('mechanisms')
+      const { data: topicsData, error: topicsError } = await supabase
+        .from('mechanism_topics')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
       
-      if (mechError) throw mechError;
+      if (topicsError) throw topicsError;
       
-      const mechanismsWithSteps = await Promise.all(
-        (mechanismsData || []).map(async (mech) => {
-          const { data: steps, error: stepsError } = await supabase
-            .from('mechanism_steps')
+      const topicsWithMechanisms = await Promise.all(
+        (topicsData || []).map(async (topic) => {
+          const { data: mechanismsData } = await supabase
+            .from('mechanisms')
             .select('*')
-            .eq('mechanism_id', mech.id)
-            .order('step_number');
+            .eq('topic_id', topic.id)
+            .order('created_at', { ascending: true });
           
-          if (stepsError) throw stepsError;
+          const mechanismsWithSteps = await Promise.all(
+            (mechanismsData || []).map(async (mech) => {
+              const { data: steps } = await supabase
+                .from('mechanism_steps')
+                .select('*')
+                .eq('mechanism_id', mech.id)
+                .order('step_number');
+              
+              return { ...mech, steps: steps || [] };
+            })
+          );
           
-          return { ...mech, steps: steps || [] };
+          return { ...topic, mechanisms: mechanismsWithSteps };
         })
       );
       
-      setMechanisms(mechanismsWithSteps);
+      setMechanismTopics(topicsWithMechanisms);
     } catch (error) {
-      console.error('Error loading mechanisms:', error);
+      console.error('Error loading mechanism topics:', error);
+    }
+  };
+
+  // Save mechanism topic
+  const saveMechanismTopic = async () => {
+    if (!user || !editingMechanismTopic?.name?.trim()) {
+      alert('Please enter a topic name');
+      return;
+    }
+    
+    try {
+      if (editingMechanismTopic.id) {
+        // Update
+        const { error } = await supabase
+          .from('mechanism_topics')
+          .update({
+            name: editingMechanismTopic.name.trim(),
+            description: editingMechanismTopic.description || ''
+          })
+          .eq('id', editingMechanismTopic.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('mechanism_topics')
+          .insert([{
+            user_id: user.id,
+            name: editingMechanismTopic.name.trim(),
+            description: editingMechanismTopic.description || ''
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadMechanismTopics();
+      setEditingMechanismTopic(null);
+    } catch (error) {
+      console.error('Error saving topic:', error);
+      alert('Failed to save topic');
+    }
+  };
+
+  // Delete mechanism topic
+  const deleteMechanismTopic = async (id: string) => {
+    if (!confirm('Delete this topic and all its mechanisms?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('mechanism_topics')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadMechanismTopics();
+    } catch (error) {
+      console.error('Error deleting topic:', error);
     }
   };
 
   // Save mechanism
   const saveMechanism = async () => {
-    if (!user) return;
+    if (!user || !selectedMechanismTopic) return;
     if (!editingMechanism?.name?.trim()) {
       alert('Please enter a mechanism name');
       return;
@@ -476,7 +557,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
           .update({
             name: editingMechanism.name.trim(),
             description: editingMechanism.description || '',
-            chapter_id: editingMechanism.chapter_id
+            topic_id: selectedMechanismTopic.id
           })
           .eq('id', editingMechanism.id);
         
@@ -512,7 +593,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
             user_id: user.id,
             name: editingMechanism.name.trim(),
             description: editingMechanism.description || '',
-            chapter_id: editingMechanism.chapter_id || null
+            topic_id: selectedMechanismTopic.id
           }])
           .select()
           .single();
@@ -537,7 +618,7 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
         }
       }
       
-      await loadMechanisms();
+      await loadMechanismTopics();
       setShowMechanismModal(false);
       setEditingMechanism(null);
       alert('✅ Mechanism saved!');
@@ -558,11 +639,12 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
         .eq('id', id);
       
       if (error) throw error;
-      await loadMechanisms();
+      await loadMechanismTopics();
     } catch (error) {
       console.error('Error deleting mechanism:', error);
     }
   };
+  
   // Load histology topics
   const loadHistologyTopics = async () => {
     if (!user) return;
@@ -2868,93 +2950,180 @@ const startFlashcards = (chapterId?: string) => {
               )}
             </div>
           )}      
-                  {/* MECHANISMS VIEW */}
+{/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h1 className="text-3xl font-bold">🧬 Chemical Mechanisms</h1>
-                <button
-                  onClick={() => {
-                    setEditingMechanism({
-                      id: '',
-                      user_id: user?.id || '',
-                      chapter_id: '',
-                      name: '',
-                      description: '',
-                      steps: [{
+                {!selectedMechanismTopic && (
+                  <button
+                    onClick={() => {
+                      setEditingMechanismTopic({
                         id: '',
-                        mechanism_id: '',
-                        step_number: 1,
-                        title: '',
-                        explanation: '',
-                        image_url: ''
-                      }]
-                    });
-                    setShowMechanismModal(true);
-                  }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Mechanism
-                </button>
+                        user_id: user?.id || '',
+                        name: '',
+                        description: '',
+                        mechanisms: []
+                      });
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Topic
+                  </button>
+                )}
               </div>
 
-              {mechanisms.length === 0 ? (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
-                  <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                  <h3 className="text-xl font-bold mb-2">No mechanisms yet</h3>
-                  <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Create your first chemical mechanism like Glycolysis!
-                  </p>
+              {/* TOPICS LIST */}
+              {!selectedMechanismTopic ? (
+                <div>
+                  {mechanismTopics.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                      <h3 className="text-xl font-bold mb-2">No mechanism topics yet</h3>
+                      <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Create your first topic to organize mechanisms!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {mechanismTopics.map(topic => (
+                        <div
+                          key={topic.id}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                          onClick={() => setSelectedMechanismTopic(topic)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-xl font-bold">{topic.name}</h3>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setEditingMechanismTopic(topic)}
+                                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteMechanismTopic(topic.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {topic.description && (
+                            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {topic.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                              {topic.mechanisms.length} mechanisms
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mechanisms.map(mechanism => (
-                    <div
-                      key={mechanism.id}
-                      className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                /* MECHANISMS LIST */
+                <div>
+                  <button
+                    onClick={() => setSelectedMechanismTopic(null)}
+                    className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                    } transition-colors shadow`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Topics</span>
+                  </button>
+
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">{selectedMechanismTopic.name}</h2>
+                    <button
                       onClick={() => {
-                        setViewingMechanism(mechanism);
+                        setEditingMechanism({
+                          id: '',
+                          user_id: user?.id || '',
+                          topic_id: selectedMechanismTopic.id,
+                          name: '',
+                          description: '',
+                          steps: [{
+                            id: '',
+                            mechanism_id: '',
+                            step_number: 1,
+                            title: '',
+                            explanation: '',
+                            image_url: ''
+                          }]
+                        });
+                        setShowMechanismModal(true);
                       }}
+                      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-xl font-bold">{mechanism.name}</h3>
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => {
-                              setEditingMechanism(mechanism);
-                              setShowMechanismModal(true);
-                            }}
-                            className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteMechanism(mechanism.id)}
-                            className="p-2 rounded-lg hover:bg-red-100 text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {mechanism.description && (
-                        <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {mechanism.description}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
-                          {mechanism.steps.length} steps
-                        </span>
-                      </div>
+                      <Plus className="w-5 h-5" />
+                      Add Mechanism
+                    </button>
+                  </div>
+
+                  {selectedMechanismTopic.mechanisms.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <h3 className="text-xl font-bold mb-2">No mechanisms yet</h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Add your first mechanism to this topic!
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {selectedMechanismTopic.mechanisms.map(mechanism => (
+                        <div
+                          key={mechanism.id}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                          onClick={() => setViewingMechanism(mechanism)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-xl font-bold">{mechanism.name}</h3>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => {
+                                  setEditingMechanism(mechanism);
+                                  setShowMechanismModal(true);
+                                }}
+                                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteMechanism(mechanism.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {mechanism.description && (
+                            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {mechanism.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                              {mechanism.steps.length} steps
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
+          
 {/* HISTOLOGY VIEW */}
           {activeTab === 'histology' && (
             <div>
@@ -4234,6 +4403,69 @@ const startFlashcards = (chapterId?: string) => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+{/* MECHANISM TOPIC EDIT MODAL */}
+      {editingMechanismTopic && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-md p-6`}>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingMechanismTopic.id ? 'Edit Topic' : 'New Topic'}
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Topic Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingMechanismTopic.name}
+                  onChange={(e) => setEditingMechanismTopic({ ...editingMechanismTopic, name: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="e.g., Metabolic Pathways"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description
+                </label>
+                <textarea
+                  value={editingMechanismTopic.description || ''}
+                  onChange={(e) => setEditingMechanismTopic({ ...editingMechanismTopic, description: e.target.value })}
+                  rows={3}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="Brief description..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveMechanismTopic}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                💾 Save Topic
+              </button>
+              <button
+                onClick={() => setEditingMechanismTopic(null)}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
