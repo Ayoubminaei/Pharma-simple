@@ -348,6 +348,13 @@ const [mechanisms, setMechanisms] = useState<Mechanism[]>([]);
     }
   }, [activeTab]);
 
+  // Reload mechanisms when entering the tab
+  useEffect(() => {
+    if (activeTab === 'mechanisms' && user) {
+      loadMechanisms();
+    }
+  }, [activeTab]);
+
  const checkSession = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
