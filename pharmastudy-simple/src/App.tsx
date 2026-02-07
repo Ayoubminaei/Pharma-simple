@@ -2464,7 +2464,8 @@ const startFlashcards = (chapterId?: string) => {
               <Maximize2 className="w-5 h-5" />
               <span className="font-medium">Histology</span>
             </button>
-          <button
+{/* EXAKINASE - HIDDEN FOR NOW
+            <button
               onClick={() => setActiveTab('exakinase')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'exakinase'
@@ -2475,6 +2476,7 @@ const startFlashcards = (chapterId?: string) => {
               <Brain className="w-5 h-5" />
               <span className="font-medium">Exakinase</span>
             </button>
+            */}
           </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
