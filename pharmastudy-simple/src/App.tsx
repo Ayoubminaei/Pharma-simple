@@ -101,6 +101,60 @@ interface HistologyTopic {
   slides: HistologySlide[];
   created_at?: string;
 }
+interface ExamFile {
+  id: string;
+  collection_id: string;
+  name: string;
+  file_url: string;
+  file_type: 'exam' | 'course';
+  year?: string;
+  extracted_text?: string;
+  processed: boolean;
+  created_at?: string;
+}
+
+interface ExamQuestion {
+  id: string;
+  topic_id?: string;
+  collection_id: string;
+  question: string;
+  answer?: string;
+  explanation?: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  question_type: 'QCM' | 'Ouverte' | 'Calcul' | 'Vrai/Faux';
+  options?: string[];
+  correct_option?: number;
+  source_year?: string;
+  is_ai_generated: boolean;
+  created_at?: string;
+}
+
+interface HotTopic {
+  id: string;
+  collection_id: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  slide_number?: string;
+  frequency: number;
+  exam_years: string[];
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  question_types: string[];
+  questions?: ExamQuestion[];
+  created_at?: string;
+}
+
+interface ExamCollection {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  subject?: string;
+  year?: string;
+  files?: ExamFile[];
+  hot_topics?: HotTopic[];
+  created_at?: string;
+}
 
 // Image upload helper
 const uploadImage = async (file: File, user: { id: string }): Promise<string | null> => {
@@ -287,7 +341,7 @@ const [resetSent, setResetSent] = useState(false);
   // UI states
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz' | 'flashcards' | 'mechanisms' | 'histology'>('dashboard');
+const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz' | 'flashcards' | 'mechanisms' | 'histology' | 'exakinase'>('dashboard'); 
   const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
   // Navigation states - 3-LEVEL HIERARCHY
@@ -343,6 +397,17 @@ const [resetSent, setResetSent] = useState(false);
   const [editingHistologySlide, setEditingHistologySlide] = useState<HistologySlide | null>(null);
   const [viewingHistologySlide, setViewingHistologySlide] = useState<HistologySlide | null>(null);
   const [showHistologyModal, setShowHistologyModal] = useState(false);
+  // Exakinase states
+  const [examCollections, setExamCollections] = useState<ExamCollection[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<ExamCollection | null>(null);
+  const [editingCollection, setEditingCollection] = useState<ExamCollection | null>(null);
+  const [editingHotTopic, setEditingHotTopic] = useState<HotTopic | null>(null);
+  const [viewingHotTopic, setViewingHotTopic] = useState<HotTopic | null>(null);
+  const [editingExamQuestion, setEditingExamQuestion] = useState<ExamQuestion | null>(null);
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [processingAI, setProcessingAI] = useState(false);
+  const [exakinaseView, setExakinaseView] = useState<'collections' | 'topics' | 'questions'>('collections');
   
   // Check session on mount
   useEffect(() => {
@@ -367,6 +432,14 @@ const [resetSent, setResetSent] = useState(false);
       setSelectedMechanismTopic(null);
     }
   }, [activeTab]);
+  // Reload exakinase when entering the tab
+  useEffect(() => {
+    if (activeTab === 'exakinase' && user) {
+      loadExamCollections();
+      setSelectedCollection(null);
+      setExakinaseView('collections');
+    }
+  }, [activeTab]);
 
 const checkSession = async () => {
     try {
@@ -380,6 +453,7 @@ const checkSession = async () => {
         await loadChapters();
         loadMechanismTopics();
         loadHistologyTopics();
+        loadExamCollections();
       }
     } catch (error) {
       console.error('Session check error:', error);
@@ -815,6 +889,338 @@ const saveHistologySlide = async () => {
       setViewingHistologySlide(null);
     } catch (error) {
       console.error('Error deleting slide:', error);
+    }
+  };
+
+  // ========== EXAKINASE FUNCTIONS ==========
+  
+  // Load exam collections
+  const loadExamCollections = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: collectionsData, error: collectionsError } = await supabase
+        .from('exam_collections')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (collectionsError) throw collectionsError;
+      
+      const collectionsWithData = await Promise.all(
+        (collectionsData || []).map(async (collection) => {
+          // Load files
+          const { data: files } = await supabase
+            .from('exam_files')
+            .select('*')
+            .eq('collection_id', collection.id)
+            .order('created_at', { ascending: true });
+          
+          // Load hot topics
+          const { data: topics } = await supabase
+            .from('hot_topics')
+            .select('*')
+            .eq('collection_id', collection.id)
+            .order('frequency', { ascending: false });
+          
+          // Load questions for each topic
+          const topicsWithQuestions = await Promise.all(
+            (topics || []).map(async (topic) => {
+              const { data: questions } = await supabase
+                .from('exam_questions')
+                .select('*')
+                .eq('topic_id', topic.id)
+                .order('created_at', { ascending: true });
+              
+              return { ...topic, questions: questions || [] };
+            })
+          );
+          
+          return {
+            ...collection,
+            files: files || [],
+            hot_topics: topicsWithQuestions
+          };
+        })
+      );
+      
+      setExamCollections(collectionsWithData);
+    } catch (error) {
+      console.error('Error loading exam collections:', error);
+    }
+  };
+
+  // Save exam collection
+  const saveExamCollection = async () => {
+    if (!user || !editingCollection?.name?.trim()) {
+      alert('Please enter a collection name');
+      return;
+    }
+    
+    try {
+      if (editingCollection.id) {
+        // Update
+        const { error } = await supabase
+          .from('exam_collections')
+          .update({
+            name: editingCollection.name.trim(),
+            description: editingCollection.description || '',
+            subject: editingCollection.subject || '',
+            year: editingCollection.year || ''
+          })
+          .eq('id', editingCollection.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('exam_collections')
+          .insert([{
+            user_id: user.id,
+            name: editingCollection.name.trim(),
+            description: editingCollection.description || '',
+            subject: editingCollection.subject || '',
+            year: editingCollection.year || ''
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadExamCollections();
+      setEditingCollection(null);
+      alert('✅ Collection saved!');
+    } catch (error) {
+      console.error('Error saving collection:', error);
+      alert('Failed to save collection');
+    }
+  };
+
+  // Delete exam collection
+  const deleteExamCollection = async (id: string) => {
+    if (!confirm('Delete this collection and all its data?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('exam_collections')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadExamCollections();
+      setSelectedCollection(null);
+    } catch (error) {
+      console.error('Error deleting collection:', error);
+    }
+  };
+
+  // Upload exam file (PDF)
+  const uploadExamFile = async (file: File, fileType: 'exam' | 'course', year?: string) => {
+    if (!user || !selectedCollection) return;
+    
+    setUploadingFile(true);
+    
+    try {
+      // Upload to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${selectedCollection.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('exam-files')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('exam-files')
+        .getPublicUrl(fileName);
+      
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('exam_files')
+        .insert([{
+          collection_id: selectedCollection.id,
+          name: file.name,
+          file_url: publicUrl,
+          file_type: fileType,
+          year: year || null,
+          processed: false
+        }]);
+      
+      if (dbError) throw dbError;
+      
+      await loadExamCollections();
+      alert('✅ File uploaded! Processing...');
+      
+      // TODO: Trigger AI processing here
+      
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // Save hot topic
+  const saveHotTopic = async () => {
+    if (!selectedCollection || !editingHotTopic?.title?.trim()) {
+      alert('Please enter a topic title');
+      return;
+    }
+    
+    try {
+      const topicData = {
+        title: editingHotTopic.title.trim(),
+        description: editingHotTopic.description || '',
+        image_url: editingHotTopic.image_url || null,
+        slide_number: editingHotTopic.slide_number || null,
+        frequency: editingHotTopic.frequency || 1,
+        exam_years: editingHotTopic.exam_years || [],
+        priority: editingHotTopic.priority || 'MEDIUM',
+        question_types: editingHotTopic.question_types || []
+      };
+      
+      if (editingHotTopic.id) {
+        // Update
+        const { error } = await supabase
+          .from('hot_topics')
+          .update(topicData)
+          .eq('id', editingHotTopic.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('hot_topics')
+          .insert([{
+            ...topicData,
+            collection_id: selectedCollection.id
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadExamCollections();
+      setShowExamModal(false);
+      setEditingHotTopic(null);
+      alert('✅ Hot Topic saved!');
+    } catch (error) {
+      console.error('Error saving hot topic:', error);
+      alert('Failed to save hot topic');
+    }
+  };
+
+  // Delete hot topic
+  const deleteHotTopic = async (id: string) => {
+    if (!confirm('Delete this hot topic?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('hot_topics')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadExamCollections();
+      setViewingHotTopic(null);
+    } catch (error) {
+      console.error('Error deleting hot topic:', error);
+    }
+  };
+
+  // Save exam question
+  const saveExamQuestion = async () => {
+    if (!selectedCollection || !editingExamQuestion?.question?.trim()) {
+      alert('Please enter a question');
+      return;
+    }
+    
+    try {
+      const questionData = {
+        question: editingExamQuestion.question.trim(),
+        answer: editingExamQuestion.answer || '',
+        explanation: editingExamQuestion.explanation || '',
+        difficulty: editingExamQuestion.difficulty || 'MEDIUM',
+        question_type: editingExamQuestion.question_type || 'QCM',
+        options: editingExamQuestion.options || [],
+        correct_option: editingExamQuestion.correct_option || null,
+        source_year: editingExamQuestion.source_year || null,
+        is_ai_generated: editingExamQuestion.is_ai_generated || false
+      };
+      
+      if (editingExamQuestion.id) {
+        // Update
+        const { error } = await supabase
+          .from('exam_questions')
+          .update(questionData)
+          .eq('id', editingExamQuestion.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('exam_questions')
+          .insert([{
+            ...questionData,
+            collection_id: selectedCollection.id,
+            topic_id: editingExamQuestion.topic_id || null
+          }]);
+        
+        if (error) throw error;
+      }
+      
+      await loadExamCollections();
+      setShowExamModal(false);
+      setEditingExamQuestion(null);
+      alert('✅ Question saved!');
+    } catch (error) {
+      console.error('Error saving question:', error);
+      alert('Failed to save question');
+    }
+  };
+
+  // Delete exam question
+  const deleteExamQuestion = async (id: string) => {
+    if (!confirm('Delete this question?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('exam_questions')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      await loadExamCollections();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+    }
+  };
+
+  // Process with AI (Phase 2/3 - Placeholder for now)
+  const processWithAI = async (collectionId: string) => {
+    if (!user) return;
+    
+    setProcessingAI(true);
+    
+    try {
+      // TODO: Implement AI analysis
+      // 1. Get all exam files and course files
+      // 2. Extract text from PDFs
+      // 3. Compare and find patterns
+      // 4. Generate hot topics
+      // 5. Generate questions
+      
+      alert('🤖 AI Processing will be implemented in Phase 2!');
+      
+    } catch (error) {
+      console.error('Error processing with AI:', error);
+      alert('Failed to process with AI');
+    } finally {
+      setProcessingAI(false);
     }
   };
 
@@ -2058,6 +2464,17 @@ const startFlashcards = (chapterId?: string) => {
               <Maximize2 className="w-5 h-5" />
               <span className="font-medium">Histology</span>
             </button>
+          <button
+              onClick={() => setActiveTab('exakinase')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'exakinase'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Brain className="w-5 h-5" />
+              <span className="font-medium">Exakinase</span>
+            </button>
           </nav>
 
           <div className={`p-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -3286,6 +3703,262 @@ const startFlashcards = (chapterId?: string) => {
               )}
             </div>
           )}
+{/* EXAKINASE VIEW */}
+          {activeTab === 'exakinase' && (
+            <div>
+              {/* COLLECTIONS VIEW */}
+              {exakinaseView === 'collections' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h1 className="text-3xl font-bold">🧠 Exakinase</h1>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Smart Exam Analyzer - Find patterns in past exams
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingCollection({
+                          id: '',
+                          user_id: user?.id || '',
+                          name: '',
+                          description: '',
+                          subject: '',
+                          year: ''
+                        });
+                      }}
+                      className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
+                    >
+                      <Plus className="w-5 h-5" />
+                      New Collection
+                    </button>
+                  </div>
+
+                  {examCollections.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                      <h3 className="text-xl font-bold mb-2">No collections yet</h3>
+                      <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Create your first exam collection to start analyzing patterns!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {examCollections.map(collection => (
+                        <div
+                          key={collection.id}
+                          className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 cursor-pointer transition-all border-2 ${darkMode ? 'border-gray-700 hover:border-purple-500' : 'border-gray-200 hover:border-purple-400'}`}
+                          onClick={() => {
+                            setSelectedCollection(collection);
+                            setExakinaseView('topics');
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold mb-1">{collection.name}</h3>
+                              {collection.subject && (
+                                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {collection.subject} {collection.year && `• ${collection.year}`}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setEditingCollection(collection)}
+                                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteExamCollection(collection.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {collection.description && (
+                            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {collection.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex flex-wrap gap-2 text-sm">
+                            <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                              📄 {collection.files?.length || 0} files
+                            </span>
+                            <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                              🔥 {collection.hot_topics?.length || 0} topics
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* HOT TOPICS VIEW */}
+              {exakinaseView === 'topics' && selectedCollection && (
+                <div>
+                  <button
+                    onClick={() => {
+                      setExakinaseView('collections');
+                      setSelectedCollection(null);
+                    }}
+                    className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                    } transition-colors shadow`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Collections</span>
+                  </button>
+
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedCollection.name}</h2>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {selectedCollection.hot_topics?.length || 0} hot topics identified
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setEditingHotTopic({
+                            id: '',
+                            collection_id: selectedCollection.id,
+                            title: '',
+                            description: '',
+                            frequency: 1,
+                            exam_years: [],
+                            priority: 'MEDIUM',
+                            question_types: []
+                          });
+                          setShowExamModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Add Hot Topic
+                      </button>
+                      <button
+                        onClick={() => {
+                          // TODO: File upload modal
+                          alert('File upload coming soon!');
+                        }}
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+                      >
+                        <Upload className="w-5 h-5" />
+                        Upload Files
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Files Section */}
+                  {selectedCollection.files && selectedCollection.files.length > 0 && (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 mb-6`}>
+                      <h3 className="text-lg font-bold mb-4">📄 Uploaded Files</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {selectedCollection.files.map(file => (
+                          <div
+                            key={file.id}
+                            className={`flex items-center justify-between p-3 rounded-lg border ${
+                              darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${
+                                file.file_type === 'exam' ? 'bg-red-100' : 'bg-blue-100'
+                              }`}>
+                                <BookOpen className={`w-4 h-4 ${
+                                  file.file_type === 'exam' ? 'text-red-600' : 'text-blue-600'
+                                }`} />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{file.name}</p>
+                                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                  {file.file_type === 'exam' ? '📝 Exam' : '📚 Course'} {file.year && `• ${file.year}`}
+                                </p>
+                              </div>
+                            </div>
+                            {file.processed && (
+                              <span className="text-xs text-green-600">✓ Processed</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hot Topics Grid */}
+                  {!selectedCollection.hot_topics || selectedCollection.hot_topics.length === 0 ? (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                      <h3 className="text-xl font-bold mb-2">No hot topics yet</h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Add hot topics manually or upload files to auto-detect patterns!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {selectedCollection.hot_topics.map(topic => (
+                        <div
+                          key={topic.id}
+                          className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 transition-all hover:shadow-xl border-2 cursor-pointer ${
+                            topic.priority === 'HIGH'
+                              ? 'border-red-500'
+                              : topic.priority === 'MEDIUM'
+                              ? 'border-yellow-500'
+                              : 'border-gray-300'
+                          }`}
+                          onClick={() => setViewingHotTopic(topic)}
+                        >
+                          {topic.image_url && (
+                            <div className="relative mb-3 bg-white rounded-lg p-2">
+                              <img 
+                                src={topic.image_url} 
+                                alt={topic.title}
+                                className="w-full h-32 object-contain"
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-bold flex-1">{topic.title}</h4>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              topic.priority === 'HIGH'
+                                ? 'bg-red-100 text-red-700'
+                                : topic.priority === 'MEDIUM'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {topic.priority}
+                            </span>
+                          </div>
+                          
+                          <p className={`text-xs mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            📊 Appeared {topic.frequency} time{topic.frequency > 1 ? 's' : ''}
+                          </p>
+                          
+                          {topic.exam_years && topic.exam_years.length > 0 && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              📅 {topic.exam_years.join(', ')}
+                            </p>
+                          )}
+                          
+                          {topic.slide_number && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              📍 Slide {topic.slide_number}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
         </main>
       </div>
@@ -4466,6 +5139,365 @@ const startFlashcards = (chapterId?: string) => {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+{/* EXAM COLLECTION EDIT MODAL */}
+      {editingCollection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-md p-6`}>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingCollection.id ? 'Edit Collection' : 'New Collection'}
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Collection Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingCollection.name}
+                  onChange={(e) => setEditingCollection({ ...editingCollection, name: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="e.g., Pharmacology 2024"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={editingCollection.subject || ''}
+                  onChange={(e) => setEditingCollection({ ...editingCollection, subject: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="e.g., Pharmacology, Anatomy"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Year
+                </label>
+                <input
+                  type="text"
+                  value={editingCollection.year || ''}
+                  onChange={(e) => setEditingCollection({ ...editingCollection, year: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="e.g., 2024"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description
+                </label>
+                <textarea
+                  value={editingCollection.description || ''}
+                  onChange={(e) => setEditingCollection({ ...editingCollection, description: e.target.value })}
+                  rows={3}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-purple-500`}
+                  placeholder="Brief description..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveExamCollection}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                💾 Save Collection
+              </button>
+              <button
+                onClick={() => setEditingCollection(null)}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HOT TOPIC EDIT MODAL */}
+      {showExamModal && editingHotTopic && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6`}>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingHotTopic.id ? 'Edit Hot Topic' : 'New Hot Topic'}
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Topic Title *
+                </label>
+                <input
+                  type="text"
+                  value={editingHotTopic.title}
+                  onChange={(e) => setEditingHotTopic({ ...editingHotTopic, title: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-blue-500`}
+                  placeholder="e.g., Beta-blockers mechanism"
+                  autoFocus
+                />
+              </div>
+
+              <ImageUploader
+                value={editingHotTopic.image_url || ''}
+                onChange={(url) => setEditingHotTopic({ ...editingHotTopic, image_url: url })}
+                darkMode={darkMode}
+                user={user}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    📍 Slide Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editingHotTopic.slide_number || ''}
+                    onChange={(e) => setEditingHotTopic({ ...editingHotTopic, slide_number: e.target.value })}
+                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                    } focus:outline-none focus:border-blue-500`}
+                    placeholder="e.g., 15, 23-25"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    🎯 Priority
+                  </label>
+                  <select
+                    value={editingHotTopic.priority}
+                    onChange={(e) => setEditingHotTopic({ ...editingHotTopic, priority: e.target.value as 'HIGH' | 'MEDIUM' | 'LOW' })}
+                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                    } focus:outline-none focus:border-blue-500`}
+                  >
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="LOW">LOW</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  📅 Exam Years (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editingHotTopic.exam_years?.join(', ') || ''}
+                  onChange={(e) => setEditingHotTopic({ 
+                    ...editingHotTopic, 
+                    exam_years: e.target.value.split(',').map(y => y.trim()).filter(Boolean)
+                  })}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-blue-500`}
+                  placeholder="e.g., 2019, 2020, 2022, 2024"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  📝 Description / Explanation
+                </label>
+                <textarea
+                  value={editingHotTopic.description || ''}
+                  onChange={(e) => setEditingHotTopic({ ...editingHotTopic, description: e.target.value })}
+                  rows={6}
+                  className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  } focus:outline-none focus:border-blue-500`}
+                  placeholder="Detailed explanation of this topic..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveHotTopic}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                💾 Save Hot Topic
+              </button>
+              <button
+                onClick={() => {
+                  setShowExamModal(false);
+                  setEditingHotTopic(null);
+                }}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HOT TOPIC VIEW MODAL */}
+      {viewingHotTopic && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col`}>
+            <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold">{viewingHotTopic.title}</h2>
+                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                  viewingHotTopic.priority === 'HIGH'
+                    ? 'bg-red-100 text-red-700'
+                    : viewingHotTopic.priority === 'MEDIUM'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {viewingHotTopic.priority}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingHotTopic(viewingHotTopic);
+                    setShowExamModal(true);
+                    setViewingHotTopic(null);
+                  }}
+                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  title="Edit"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete ${viewingHotTopic.title}?`)) {
+                      deleteHotTopic(viewingHotTopic.id);
+                    }
+                  }}
+                  className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setViewingHotTopic(null)}
+                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Image Section */}
+                {viewingHotTopic.image_url && (
+                  <div className="bg-white rounded-xl p-4">
+                    <img 
+                      src={viewingHotTopic.image_url} 
+                      alt={viewingHotTopic.title}
+                      className="w-full max-h-64 object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Details Section */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-gray-500">📊 Statistics</h3>
+                    <p className="text-lg">
+                      Appeared <strong>{viewingHotTopic.frequency}</strong> time{viewingHotTopic.frequency > 1 ? 's' : ''}
+                    </p>
+                  </div>
+
+                  {viewingHotTopic.exam_years && viewingHotTopic.exam_years.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 text-gray-500">📅 Exam Years</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {viewingHotTopic.exam_years.map(year => (
+                          <span key={year} className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm">
+                            {year}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {viewingHotTopic.slide_number && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 text-gray-500">📍 Slide Number</h3>
+                      <p>{viewingHotTopic.slide_number}</p>
+                    </div>
+                  )}
+
+                  {viewingHotTopic.description && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 text-gray-500">📝 Explanation</h3>
+                      <p className="whitespace-pre-wrap">{viewingHotTopic.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Questions Section */}
+              {viewingHotTopic.questions && viewingHotTopic.questions.length > 0 && (
+                <div className="mt-6 pt-6 border-t dark:border-gray-700">
+                  <h3 className="text-lg font-bold mb-4">❓ Related Questions ({viewingHotTopic.questions.length})</h3>
+                  <div className="space-y-4">
+                    {viewingHotTopic.questions.map((q, idx) => (
+                      <div key={q.id} className={`p-4 rounded-lg ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="font-medium">Q{idx + 1}. {q.question}</p>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            q.difficulty === 'HARD' ? 'bg-red-100 text-red-700' :
+                            q.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {q.difficulty}
+                          </span>
+                        </div>
+                        {q.answer && (
+                          <p className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <strong>Answer:</strong> {q.answer}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
