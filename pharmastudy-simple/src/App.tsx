@@ -33,6 +33,7 @@ interface Molecule {
   side_effects?: string;
   molecule_type?: string;
   body_effect?: string;
+  use_in_flashcards?: boolean;
 }
 interface MechanismStep {
   id: string;
@@ -1651,6 +1652,7 @@ const saveMolecule = async () => {
   metabolism: editingMolecule.metabolism || null,
   excretion: editingMolecule.excretion || null,
   side_effects: editingMolecule.side_effects || null
+   use_in_flashcards: editingMolecule.use_in_flashcards !== false
     };
 
       if (editingMolecule.id) {
@@ -1864,7 +1866,7 @@ const generateQuiz = (chapterId?: string) => {
     setQuizScore({ correct: 0, total: quizQuestions.length });
     setQuizActive(true);
   };
-  // Flashcard functions
+// Flashcard functions
 const startFlashcards = (chapterId?: string) => {
     let molecules;
     
@@ -1873,16 +1875,16 @@ const startFlashcards = (chapterId?: string) => {
       const chapter = chapters.find(c => c.id === chapterId);
       if (!chapter) return;
       
-      molecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url);
+      molecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url && m.use_in_flashcards !== false);
     } else {
       // All molecules
       molecules = chapters.flatMap(c => 
         c.topics.flatMap(t => t.molecules)
-      ).filter(m => m.image_url);
+      ).filter(m => m.image_url && m.use_in_flashcards !== false);
     }
     
     if (molecules.length === 0) {
-      alert('Add molecules with images first!');
+      alert('No flashcards available! Add molecules with images and enable them for flashcards.');
       return;
     }
     
@@ -1893,6 +1895,7 @@ const startFlashcards = (chapterId?: string) => {
     setFlashcardStats({ correct: 0, wrong: 0 });
     setFlashcardMode(true);
   };
+
   const revealFlashcardAnswer = () => {
     setShowFlashcardAnswer(true);
   };
@@ -4807,8 +4810,27 @@ const startFlashcards = (chapterId?: string) => {
                           : 'bg-gray-50 border-gray-200 text-gray-900'
                       } focus:outline-none focus:border-teal-500`}
                     />
-                  </div>
+
+                    </div>
                )}
+            
+            {/* FLASHCARDS CHECKBOX */}
+            <div className={`border-t pt-4 mt-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editingMolecule.use_in_flashcards !== false}
+                  onChange={(e) => setEditingMolecule({ ...editingMolecule, use_in_flashcards: e.target.checked })}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                />
+                <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  🎴 Utiliser dans les flashcards
+                </span>
+              </label>
+              <p className={`text-xs mt-1 ml-8 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Cette molécule apparaîtra dans le mode flashcards pour l'apprentissage
+              </p>
+            </div>
             
             <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                   <button
