@@ -1651,7 +1651,7 @@ const saveMolecule = async () => {
   duration: editingMolecule.duration || null,
   metabolism: editingMolecule.metabolism || null,
   excretion: editingMolecule.excretion || null,
-  side_effects: editingMolecule.side_effects || null
+  side_effects: editingMolecule.side_effects || null,
    use_in_flashcards: editingMolecule.use_in_flashcards !== false
     };
 
