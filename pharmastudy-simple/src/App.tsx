@@ -2732,9 +2732,6 @@ onClick={() => {
         </div>
       )}
 
-      {/* CHAPTERS VIEW */}
-      {currentView === 'chapters' && (
-
               {/* CHAPTERS VIEW */}
               {currentView === 'chapters' && (
                 <div>
