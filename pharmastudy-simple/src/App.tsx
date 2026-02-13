@@ -341,7 +341,7 @@ const [resetSent, setResetSent] = useState(false);
   
   // UI states
   const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | 'quiz' | 'flashcards' | 'mechanisms' | 'histology' | 'exakinase'>('dashboard'); 
   const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
