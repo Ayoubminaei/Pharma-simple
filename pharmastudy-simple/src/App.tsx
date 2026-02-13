@@ -2399,7 +2399,12 @@ const startFlashcards = (chapterId?: string) => {
             </button>
 
             <button
-              onClick={() => { setActiveTab('browse'); goToChapters(); }}
+onClick={() => { 
+  setActiveTab('browse'); 
+  goToChapters(); 
+  setSidebarOpen(false);
+}}
+              
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'browse'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
