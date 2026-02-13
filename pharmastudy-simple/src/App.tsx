@@ -2432,7 +2432,10 @@ onClick={() => {
             </button>
 
             <button
-              onClick={() => setActiveTab('quiz')}
+onClick={() => {
+  setActiveTab('quiz');
+  setSidebarOpen(false);
+}}  
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'quiz'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
@@ -2443,8 +2446,12 @@ onClick={() => {
               <span className="font-medium">Quiz Mode</span>
             </button>
             <button
-              onClick={() => setActiveTab('flashcards')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+onClick={() => {
+  setActiveTab('flashcards');
+  setSidebarOpen(false);
+}}
+              
+             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'flashcards'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
                   : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
@@ -2454,7 +2461,11 @@ onClick={() => {
               <span className="font-medium">Flashcards</span>
             </button> 
           <button
-              onClick={() => setActiveTab('mechanisms')}
+onClick={() => {
+  setActiveTab('mechanisms');
+  setSidebarOpen(false);
+}}
+            
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'mechanisms'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
@@ -2466,7 +2477,12 @@ onClick={() => {
             </button> 
             
           <button
-              onClick={() => setActiveTab('histology')}
+onClick={() => {
+  setActiveTab('histology');
+  setSelectedHistologyTopic(null);
+  setSidebarOpen(false);
+}}
+            
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeTab === 'histology'
                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
