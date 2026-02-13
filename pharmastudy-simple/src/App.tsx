@@ -2561,19 +2561,25 @@ onClick={() => {
             <div>
               <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 shadow-lg`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {chapters.length}
-                      </p>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chapters</p>
-                    </div>
-                  </div>
-                </div>
+<div 
+  onClick={() => {
+    setActiveTab('browse');
+    goToChapters();
+  }}
+  className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 shadow-lg cursor-pointer transition-all`}
+>
+  <div className="flex items-center gap-3 mb-2">
+    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+      <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+    </div>
+    <div>
+      <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        {chapters.length}
+      </p>
+      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chapters</p>
+    </div>
+  </div>
+</div>
 
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 shadow-lg`}>
                   <div className="flex items-center gap-3 mb-2">
