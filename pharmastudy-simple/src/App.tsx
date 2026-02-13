@@ -2614,6 +2614,7 @@ onClick={() => {
     </div>
   </div>
 </div>
+</div>
 
  <div className={`${darkMode ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-800' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'} border-2 rounded-xl p-6 mb-6`}>
                 <div className="flex items-start gap-4">
@@ -2727,7 +2728,7 @@ onClick={() => {
                 </div>
               )}
             </div>
-          )}
+          ))}
         </div>
       )}
 
