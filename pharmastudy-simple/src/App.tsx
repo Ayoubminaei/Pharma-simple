@@ -2383,20 +2383,20 @@ const startFlashcards = (chapterId?: string) => {
         {/* Sidebar */}
         <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static w-64 h-[calc(100vh-57px)] ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r transition-transform z-40 overflow-y-auto`}>
           <nav className="p-4 space-y-2">
-             <button
-              onClick={() => {
-                setActiveTab('histology');
-                setSelectedHistologyTopic(null);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeTab === 'histology'
-                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
-                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <Maximize2 className="w-5 h-5" />
-              <span className="font-medium">Histology</span>
-            </button>
+<button
+  onClick={() => {
+    setActiveTab('dashboard');
+    setSidebarOpen(false);
+  }}
+  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+    activeTab === 'dashboard'
+      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+      : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+  }`}
+>
+  <Home className="w-5 h-5" />
+  <span className="font-medium">Dashboard</span>
+</button>
 
             <button
 onClick={() => { 
