@@ -2669,25 +2669,28 @@ onClick={() => {
           {/* BROWSE VIEW - 3-LEVEL NAVIGATION */}
           {activeTab === 'browse' && (
             <div>
-              {/* Back Button */}
-              {currentView !== 'chapters' && (
-                <button
-                  onClick={() => {
-                    if (currentView === 'molecules') {
-                      setCurrentView('topics');
-                      setSelectedTopic(null);
-                    } else if (currentView === 'topics') {
-                      goToChapters();
-                    }
-                  }}
-                  className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
-                    darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
-                  } transition-colors shadow`}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </button>
-              )}
+{/* Back Button */}
+{currentView !== 'chapters' && (
+  <button
+    onClick={() => {
+      if (currentView === 'molecules') {
+        setCurrentView('topics');
+        setSelectedTopic(null);
+      } else if (currentView === 'topics') {
+        goToChapters();
+      } else if (currentView === 'all-topics') {
+        setActiveTab('dashboard');
+        setCurrentView('chapters');
+      }
+    }}
+    className={`mb-4 flex items-center gap-2 px-4 py-2 rounded-lg ${
+      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+    } transition-colors shadow`}
+  >
+    <ArrowLeft className="w-4 h-4" />
+    <span>Back</span>
+  </button>
+)}
 
               {/* ALL TOPICS VIEW */}
       {currentView === 'all-topics' && (
