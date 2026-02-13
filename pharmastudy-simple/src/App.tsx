@@ -346,7 +346,7 @@ const [activeTab, setActiveTab] = useState<'dashboard' | 'browse' | 'search' | '
   const [topicTab, setTopicTab] = useState<'all' | 'drug' | 'enzyme' | 'molecule'>('all');
   
   // Navigation states - 3-LEVEL HIERARCHY
-  const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecules'>('chapters');
+const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecules' | 'all-topics'>('chapters');
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   
@@ -2595,20 +2595,25 @@ onClick={() => {
                   </div>
                 </div>
 
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 shadow-lg`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                      <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {chapters.reduce((sum, c) => sum + c.topics.length, 0)}
-                      </p>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Topics</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+<div 
+  onClick={() => {
+    setActiveTab('browse');
+    setCurrentView('all-topics');
+  }}
+  className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 shadow-lg cursor-pointer transition-all`}
+>
+  <div className="flex items-center gap-3 mb-2">
+    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+      <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+    </div>
+    <div>
+      <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        {chapters.reduce((sum, c) => sum + c.topics.length, 0)}
+      </p>
+      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Topics</p>
+    </div>
+  </div>
+</div>
 
  <div className={`${darkMode ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-800' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'} border-2 rounded-xl p-6 mb-6`}>
                 <div className="flex items-start gap-4">
@@ -2682,6 +2687,52 @@ onClick={() => {
                   <span>Back</span>
                 </button>
               )}
+
+              {/* ALL TOPICS VIEW */}
+      {currentView === 'all-topics' && (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">All Topics</h1>
+          </div>
+
+          {chapters.map(chapter => (
+            <div key={chapter.id} className="mb-8">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                📚 {chapter.name}
+                <span className={`text-sm font-normal ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  ({chapter.topics.length} topics)
+                </span>
+              </h2>
+
+              {chapter.topics.length === 0 ? (
+                <p className={`${darkMode ? 'text-gray-500' : 'text-gray-500'} ml-6`}>No topics yet</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {chapter.topics.map(topic => (
+                    <div
+                      key={topic.id}
+                      className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:shadow-xl'} rounded-xl p-6 transition-all cursor-pointer border-2 border-transparent hover:border-green-500`}
+                      onClick={() => {
+                        setSelectedChapter(chapter);
+                        setSelectedTopic(topic);
+                        setCurrentView('molecules');
+                      }}
+                    >
+                      <h3 className="text-xl font-bold mb-3">🧬 {topic.name}</h3>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {topic.molecules.length} molecules
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CHAPTERS VIEW */}
+      {currentView === 'chapters' && (
 
               {/* CHAPTERS VIEW */}
               {currentView === 'chapters' && (
