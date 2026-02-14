@@ -3170,7 +3170,14 @@ onClick={() => {
                       <span>Try Again</span>
                     </button>
                     <button
-                      onClick={generateQuiz}
+onClick={() => {
+  setQuizActive(false);
+  setQuizQuestions([]);
+  setCurrentQuestionIndex(0);
+  setSelectedAnswer(null);
+  setShowQuizResult(false);
+}}
+                      
                       className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
                     >
                       <Sparkles className="w-5 h-5" />
