@@ -3185,6 +3185,18 @@ onClick={() => {
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Question {currentQuestionIndex + 1} of {quizQuestions.length}
                       </span>
+  <button
+    onClick={() => {
+      if (confirm('Voulez-vous vraiment quitter ce quiz?')) {
+        setQuizActive(false);
+        setQuizQuestions([]);
+      }
+    }}
+    className={`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-colors`}
+  >
+    Quitter le quiz
+  </button>
+                      
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Score: {quizScore.correct}/{currentQuestionIndex}
                       </span>
