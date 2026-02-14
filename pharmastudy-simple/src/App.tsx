@@ -3224,8 +3224,8 @@ onClick={() => {
           </div>
         )}
       </div>
+    <div className={` ${darkMode ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-700 hover:border-purple-500
           
-            className={`${darkMode ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-700 hover:border-purple-500' : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:border-purple-400'} border-2 rounded-xl p-6 cursor-pointer transition-all hover:shadow-xl`}
           >
             <Sparkles className="w-12 h-12 text-purple-500 mb-3" />
             <h3 className="text-xl font-bold mb-2">🌟 All Chapters</h3>
