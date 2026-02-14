@@ -82,6 +82,7 @@ interface QuizQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+  imageUrl?: string;
 }
 interface HistologySlide {
   id: string;
@@ -1775,61 +1776,167 @@ const saveMolecule = async () => {
 
   // Quiz functions
 const generateQuiz = (chapterId?: string) => {
-  let allMolecules;
-  
-  if (chapterId) {
-    // Quiz pour un chapitre spécifique
-    const chapter = chapters.find(c => c.id === chapterId);
-    if (!chapter) return;
-    
-    allMolecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url);
-  } else {
-    // Quiz pour tous les chapitres
-    allMolecules = chapters.flatMap(c => 
-      c.topics.flatMap(t => t.molecules)
-    ).filter(m => m.image_url);
+  if (!chapterId) {
+    alert('Veuillez choisir un chapitre');
+    return;
   }
+
+  const chapter = chapters.find(c => c.id === chapterId);
+  if (!chapter) return;
+  
+  // Toutes les molécules du chapitre avec images ET informations complètes
+  const allMolecules = chapter.topics
+    .flatMap(t => t.molecules)
+    .filter(m => 
+      m.image_url && 
+      m.name && 
+      (m.primary_function || m.side_effects || m.drug_category)
+    );
   
   if (allMolecules.length < 4) {
-    alert('Vous avez besoin d\'au moins 4 molécules avec images pour générer un quiz !');
+    alert('Vous avez besoin d\'au moins 4 molécules complètes avec images dans ce chapitre!');
     return;
   }
   
   const questions: QuizQuestion[] = [];
   const usedMolecules = new Set<string>();
-  const numQuestions = Math.min(10, allMolecules.length);
+  const numQuestions = Math.min(12, allMolecules.length);
+  
+  const questionTypes = [
+    'image-to-name',
+    'name-to-function', 
+    'name-to-side-effect',
+    'image-to-category'
+  ];
   
   for (let i = 0; i < numQuestions; i++) {
     let correctMolecule;
     do {
       correctMolecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
-    } while (usedMolecules.has(correctMolecule.id));
+    } while (usedMolecules.has(correctMolecule.id) && usedMolecules.size < allMolecules.length);
     
     usedMolecules.add(correctMolecule.id);
     
-    // Choisir 3 autres molécules différentes
-    const wrongMolecules = [];
-    const availableWrong = allMolecules.filter(m => m.id !== correctMolecule.id);
+    const questionType = questionTypes[i % questionTypes.length];
     
-    while (wrongMolecules.length < 3 && availableWrong.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableWrong.length);
-      const wrongMol = availableWrong[randomIndex];
-      
-      if (!wrongMolecules.find(m => m.id === wrongMol.id)) {
-        wrongMolecules.push(wrongMol);
+    let question: QuizQuestion | null = null;
+    
+    switch (questionType) {
+      case 'image-to-name': {
+        const wrongMolecules = allMolecules
+          .filter(m => m.id !== correctMolecule.id)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+        
+        question = {
+          question: `Quelle est cette molécule?`,
+          options: allOptions.map(m => m.name),
+          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+          explanation: `C'est ${correctMolecule.name}. ${correctMolecule.primary_function || ''}`,
+          imageUrl: correctMolecule.image_url
+        };
+        break;
       }
-      availableWrong.splice(randomIndex, 1);
+      
+      case 'name-to-function': {
+        if (!correctMolecule.primary_function) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const wrongMolecules = allMolecules
+          .filter(m => m.id !== correctMolecule.id && m.primary_function)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        if (wrongMolecules.length < 3) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+        
+        question = {
+          question: `Quelle est la fonction principale de ${correctMolecule.name}?`,
+          options: allOptions.map(m => m.primary_function || ''),
+          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+          explanation: `${correctMolecule.name}: ${correctMolecule.primary_function}`
+        };
+        break;
+      }
+      
+      case 'name-to-side-effect': {
+        if (!correctMolecule.side_effects) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const wrongMolecules = allMolecules
+          .filter(m => m.id !== correctMolecule.id && m.side_effects)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        if (wrongMolecules.length < 3) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+        
+        question = {
+          question: `Quels sont les effets secondaires de ${correctMolecule.name}?`,
+          options: allOptions.map(m => m.side_effects || ''),
+          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+          explanation: `${correctMolecule.name}: ${correctMolecule.side_effects}`
+        };
+        break;
+      }
+      
+      case 'image-to-category': {
+        if (!correctMolecule.drug_category) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const wrongMolecules = allMolecules
+          .filter(m => m.id !== correctMolecule.id && m.drug_category)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        if (wrongMolecules.length < 3) {
+          i--;
+          usedMolecules.delete(correctMolecule.id);
+          continue;
+        }
+        
+        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+        
+        question = {
+          question: `À quelle catégorie appartient cette molécule?`,
+          options: allOptions.map(m => m.drug_category || ''),
+          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+          explanation: `${correctMolecule.name} est un(e) ${correctMolecule.drug_category}`,
+          imageUrl: correctMolecule.image_url
+        };
+        break;
+      }
     }
     
-    // Mélanger les 4 molécules (1 correcte + 3 fausses)
-    const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
-    
-    questions.push({
-      question: `Quelle est la structure de ${correctMolecule.name} ?`,
-      options: allOptions.map(m => m.image_url || ''),
-      correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
-      explanation: `Ceci est la structure de ${correctMolecule.name}. ${correctMolecule.primary_function || ''}`
-    });
+    if (question) {
+      questions.push(question);
+    }
+  }
+  
+  if (questions.length === 0) {
+    alert('Impossible de générer un quiz. Ajoutez plus d\'informations à vos molécules!');
+    return;
   }
   
   setQuizQuestions(questions);
@@ -1839,33 +1946,7 @@ const generateQuiz = (chapterId?: string) => {
   setQuizScore({ correct: 0, total: questions.length });
   setQuizActive(true);
 };
-
-  const handleQuizAnswer = (answerIndex: number) => {
-    setSelectedAnswer(answerIndex);
-    setShowQuizResult(true);
-    
-    if (answerIndex === quizQuestions[currentQuestionIndex].correctAnswer) {
-      setQuizScore(prev => ({ ...prev, correct: prev.correct + 1 }));
-    }
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestionIndex < quizQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setShowQuizResult(false);
-    } else {
-      setQuizActive(false);
-    }
-  };
-
-  const restartQuiz = () => {
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setShowQuizResult(false);
-    setQuizScore({ correct: 0, total: quizQuestions.length });
-    setQuizActive(true);
-  };
+  
 // Flashcard functions
 const startFlashcards = (chapterId?: string) => {
     let molecules;
@@ -3197,49 +3278,58 @@ onClick={() => {
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-bold mb-6 whitespace-pre-line">
-                    {quizQuestions[currentQuestionIndex].question}
-                  </h3>
+<h2 className="text-2xl font-bold mb-4">
+  {quizQuestions[currentQuestionIndex].question}
+</h2>
+
+{quizQuestions[currentQuestionIndex].imageUrl && (
+  <div className="bg-white dark:bg-gray-900 rounded-xl p-6 mb-6 flex justify-center">
+    <img 
+      src={quizQuestions[currentQuestionIndex].imageUrl} 
+      alt="Question"
+      className="max-h-64 object-contain"
+    />
+  </div>
+)}
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-  {quizQuestions[currentQuestionIndex].options.map((imageUrl, index) => (
-    <button
-      key={index}
-      onClick={() => !showQuizResult && handleQuizAnswer(index)}
-      disabled={showQuizResult}
-      className={`relative p-4 rounded-xl border-4 transition-all ${
-        showQuizResult
-          ? index === quizQuestions[currentQuestionIndex].correctAnswer
-            ? 'border-green-500 bg-green-100 dark:bg-green-900'
-            : index === selectedAnswer
-            ? 'border-red-500 bg-red-100 dark:bg-red-900'
-            : 'border-gray-300 dark:border-gray-600'
-          : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:shadow-lg'
-      }`}
-    >
-      <div className="bg-white rounded-lg p-3 mb-2">
-        <img 
-          src={imageUrl} 
-          alt={`Option ${index + 1}`}
-          className="w-full h-40 object-contain"
-        />
+{quizQuestions[currentQuestionIndex].options.map((option, index) => (
+  <button
+    key={index}
+    onClick={() => !showQuizResult && handleQuizAnswer(index)}
+    disabled={showQuizResult}
+    className={`relative p-4 rounded-xl border-4 transition-all ${
+      showQuizResult
+        ? index === quizQuestions[currentQuestionIndex].correctAnswer
+          ? 'border-green-500 bg-green-100 dark:bg-green-900'
+          : index === selectedAnswer
+          ? 'border-red-500 bg-red-100 dark:bg-red-900'
+          : 'border-gray-300 dark:border-gray-600'
+        : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:shadow-lg'
+    }`}
+  >
+    <div className="min-h-[120px] flex items-center justify-center p-4">
+      <p className={`text-base text-center font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        {option}
+      </p>
+    </div>
+    
+    {showQuizResult && (
+      <div className="absolute top-2 right-2">
+        {index === quizQuestions[currentQuestionIndex].correctAnswer ? (
+          <div className="bg-green-500 rounded-full p-2">
+            <CheckCircle className="w-6 h-6 text-white" />
+          </div>
+        ) : index === selectedAnswer ? (
+          <div className="bg-red-500 rounded-full p-2">
+            <XCircle className="w-6 h-6 text-white" />
+          </div>
+        ) : null}
       </div>
-      
-      {showQuizResult && (
-        <div className="absolute top-2 right-2">
-          {index === quizQuestions[currentQuestionIndex].correctAnswer ? (
-            <div className="bg-green-500 rounded-full p-2">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-          ) : index === selectedAnswer ? (
-            <div className="bg-red-500 rounded-full p-2">
-              <XCircle className="w-6 h-6 text-white" />
-            </div>
-          ) : null}
-        </div>
-      )}
-    </button>
-  ))}
+    )}
+  </button>
+))}
+                    
 </div>
 
                   {showQuizResult && (
