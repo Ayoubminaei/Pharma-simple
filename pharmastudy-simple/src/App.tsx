@@ -1809,130 +1809,143 @@ const generateQuiz = (chapterId?: string) => {
     'image-to-category'
   ];
   
-  for (let i = 0; i < numQuestions; i++) {
-    let correctMolecule;
-    do {
-      correctMolecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
-    } while (usedMolecules.has(correctMolecule.id) && usedMolecules.size < allMolecules.length);
-    
-    usedMolecules.add(correctMolecule.id);
-    
-    const questionType = questionTypes[i % questionTypes.length];
-    
-    let question: QuizQuestion | null = null;
-    
-    switch (questionType) {
-      case 'image-to-name': {
-        const wrongMolecules = allMolecules
-          .filter(m => m.id !== correctMolecule.id)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-        
-        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
-        
-        question = {
-          question: `Quelle est cette molécule?`,
-          options: allOptions.map(m => m.name),
-          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
-          explanation: `C'est ${correctMolecule.name}. ${correctMolecule.primary_function || ''}`,
-          imageUrl: correctMolecule.image_url
-        };
-        break;
+for (let i = 0; i < numQuestions; i++) {
+  // Protection contre boucle infinie
+  let attempts = 0;
+  let correctMolecule;
+  
+  do {
+    correctMolecule = allMolecules[Math.floor(Math.random() * allMolecules.length)];
+    attempts++;
+    if (attempts > 50) break; // Sécurité
+  } while (usedMolecules.has(correctMolecule.id) && usedMolecules.size < allMolecules.length);
+  
+  if (attempts > 50 || !correctMolecule) continue;
+  
+  usedMolecules.add(correctMolecule.id);
+  
+  const questionType = questionTypes[i % questionTypes.length];
+  
+  let question: QuizQuestion | null = null;
+  
+  switch (questionType) {
+    case 'image-to-name': {
+      const wrongMolecules = allMolecules
+        .filter(m => m.id !== correctMolecule.id)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+      
+      if (wrongMolecules.length < 3) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
       }
       
-      case 'name-to-function': {
-        if (!correctMolecule.primary_function) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const wrongMolecules = allMolecules
-          .filter(m => m.id !== correctMolecule.id && m.primary_function)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-        
-        if (wrongMolecules.length < 3) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
-        
-        question = {
-          question: `Quelle est la fonction principale de ${correctMolecule.name}?`,
-          options: allOptions.map(m => m.primary_function || ''),
-          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
-          explanation: `${correctMolecule.name}: ${correctMolecule.primary_function}`
-        };
-        break;
-      }
+      const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
       
-      case 'name-to-side-effect': {
-        if (!correctMolecule.side_effects) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const wrongMolecules = allMolecules
-          .filter(m => m.id !== correctMolecule.id && m.side_effects)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-        
-        if (wrongMolecules.length < 3) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
-        
-        question = {
-          question: `Quels sont les effets secondaires de ${correctMolecule.name}?`,
-          options: allOptions.map(m => m.side_effects || ''),
-          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
-          explanation: `${correctMolecule.name}: ${correctMolecule.side_effects}`
-        };
-        break;
-      }
-      
-      case 'image-to-category': {
-        if (!correctMolecule.drug_category) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const wrongMolecules = allMolecules
-          .filter(m => m.id !== correctMolecule.id && m.drug_category)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-        
-        if (wrongMolecules.length < 3) {
-          i--;
-          usedMolecules.delete(correctMolecule.id);
-          continue;
-        }
-        
-        const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
-        
-        question = {
-          question: `À quelle catégorie appartient cette molécule?`,
-          options: allOptions.map(m => m.drug_category || ''),
-          correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
-          explanation: `${correctMolecule.name} est un(e) ${correctMolecule.drug_category}`,
-          imageUrl: correctMolecule.image_url
-        };
-        break;
-      }
+      question = {
+        question: `Quelle est cette molécule?`,
+        options: allOptions.map(m => m.name),
+        correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+        explanation: `C'est ${correctMolecule.name}. ${correctMolecule.primary_function || ''}`,
+        imageUrl: correctMolecule.image_url
+      };
+      break;
     }
     
-    if (question) {
-      questions.push(question);
+    case 'name-to-function': {
+      if (!correctMolecule.primary_function) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const wrongMolecules = allMolecules
+        .filter(m => m.id !== correctMolecule.id && m.primary_function)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+      
+      if (wrongMolecules.length < 3) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+      
+      question = {
+        question: `Quelle est la fonction principale de ${correctMolecule.name}?`,
+        options: allOptions.map(m => m.primary_function || ''),
+        correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+        explanation: `${correctMolecule.name}: ${correctMolecule.primary_function}`
+      };
+      break;
+    }
+    
+    case 'name-to-side-effect': {
+      if (!correctMolecule.side_effects) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const wrongMolecules = allMolecules
+        .filter(m => m.id !== correctMolecule.id && m.side_effects)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+      
+      if (wrongMolecules.length < 3) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+      
+      question = {
+        question: `Quels sont les effets secondaires de ${correctMolecule.name}?`,
+        options: allOptions.map(m => m.side_effects || ''),
+        correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+        explanation: `${correctMolecule.name}: ${correctMolecule.side_effects}`
+      };
+      break;
+    }
+    
+    case 'image-to-category': {
+      if (!correctMolecule.drug_category) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const wrongMolecules = allMolecules
+        .filter(m => m.id !== correctMolecule.id && m.drug_category)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+      
+      if (wrongMolecules.length < 3) {
+        i--;
+        usedMolecules.delete(correctMolecule.id);
+        continue;
+      }
+      
+      const allOptions = [correctMolecule, ...wrongMolecules].sort(() => Math.random() - 0.5);
+      
+      question = {
+        question: `À quelle catégorie appartient cette molécule?`,
+        options: allOptions.map(m => m.drug_category || ''),
+        correctAnswer: allOptions.findIndex(m => m.id === correctMolecule.id),
+        explanation: `${correctMolecule.name} est un(e) ${correctMolecule.drug_category}`,
+        imageUrl: correctMolecule.image_url
+      };
+      break;
     }
   }
+  
+  if (question) {
+    questions.push(question);
+  }
+}
   
   if (questions.length === 0) {
     alert('Impossible de générer un quiz. Ajoutez plus d\'informations à vos molécules!');
