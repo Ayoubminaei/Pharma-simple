@@ -2099,11 +2099,20 @@ const startFlashcards = (chapterId?: string) => {
   const searchResults = chapters.flatMap(chapter =>
     chapter.topics.flatMap(topic =>
       topic.molecules
-        .filter(mol =>
-          mol.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          mol.formula.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          mol.description.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+.filter(mol => {
+  const query = searchQuery.toLowerCase();
+  return (
+    mol.name.toLowerCase().includes(query) ||
+    mol.formula.toLowerCase().includes(query) ||
+    (mol.description || '').toLowerCase().includes(query) ||
+    (mol.primary_function || '').toLowerCase().includes(query) ||
+    (mol.side_effects || '').toLowerCase().includes(query) ||
+    (mol.drug_category || '').toLowerCase().includes(query) ||
+    (mol.drug_class || '').toLowerCase().includes(query) ||
+    (mol.target_receptor || '').toLowerCase().includes(query)
+  );
+})
+      
         .map(mol => ({ chapter, topic, molecule: mol }))
     )
   );
