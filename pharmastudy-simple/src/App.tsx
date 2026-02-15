@@ -1788,7 +1788,45 @@ const saveMolecule = async () => {
       alert('Failed to save. Please try again.');
     }
   };
-
+const deleteMolecule = async (id: string) => {
+  if (!selectedChapter || !selectedTopic) return;
+  
+  // Déterminer la table selon l'onglet actif
+  const tableName = topicTab === 'course' ? 'course_notes' : 'molecules';
+  
+  try {
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    // Mettre à jour l'état local
+    const updatedTopic = {
+      ...selectedTopic,
+      molecules: topicTab === 'course' ? selectedTopic.molecules : selectedTopic.molecules.filter(m => m.id !== id),
+      course_notes: topicTab === 'course' ? selectedTopic.course_notes.filter(m => m.id !== id) : selectedTopic.course_notes
+    };
+    
+    const updatedChapter = {
+      ...selectedChapter,
+      topics: selectedChapter.topics.map(t =>
+        t.id === selectedTopic.id ? updatedTopic : t
+      )
+    };
+    
+    setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
+    setSelectedChapter(updatedChapter);
+    setSelectedTopic(updatedTopic);
+    
+    alert('✅ Deleted successfully!');
+  } catch (error) {
+    console.error('Error deleting:', error);
+    alert('Failed to delete. Please try again.');
+  }
+};
+  
   // Quiz functions
 const generateQuiz = (chapterId?: string) => {
   let allMolecules;
