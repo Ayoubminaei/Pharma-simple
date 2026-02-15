@@ -2212,6 +2212,34 @@ const startFlashcards = (chapterId?: string) => {
 </div>
           
           {showResetPassword ? (
+            <div className="space-y-4">
+              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Reset Password</h2>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}
+                placeholder="New password"
+              />
+              <button
+                onClick={async () => {
+                  const { error } = await supabase.auth.updateUser({ password: newPassword });
+                  if (error) alert('Error: ' + error.message);
+                  else { alert('✅ Password updated!'); setShowResetPassword(false); setNewPassword(''); }
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 rounded-lg"
+              >
+                Update Password
+              </button>
+              <button
+                onClick={() => setShowResetPassword(false)}
+                className={`w-full py-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+              >
+                Back to Login
+              </button>
+            </div>
+          ) : (
+        
             // RESET PASSWORD FORM
             <div className="space-y-4">
               <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
