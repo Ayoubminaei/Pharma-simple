@@ -2998,9 +2998,9 @@ onClick={() => {
             📚 Cours ({selectedTopic.course_notes.length})
           </button>
         </div>
-              
-                  {selectedTopic.molecules.length === 0 ? (
-                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+              {(topicTab === 'course' ? (selectedTopic.course_notes || []).length === 0 : selectedTopic.molecules.length === 0) ? (
+
+                  <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
                       <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                       <h3 className="text-xl font-bold mb-2">No molecules yet</h3>
                       <p className={`mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
