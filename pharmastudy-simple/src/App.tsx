@@ -1667,6 +1667,8 @@ const saveMolecule = async () => {
       return;
     }
     
+    // Déterminer la table en fonction de l'onglet actif
+    const tableName = topicTab === 'course' ? 'course_notes' : 'molecules';
     
     try {
  const moleculeData = {
@@ -1689,16 +1691,16 @@ const saveMolecule = async () => {
   metabolism: editingMolecule.metabolism || null,
   excretion: editingMolecule.excretion || null,
   side_effects: editingMolecule.side_effects || null,
-   use_in_flashcards: editingMolecule.use_in_flashcards !== false
+  use_in_flashcards: editingMolecule.use_in_flashcards !== false
     };
 
       if (editingMolecule.id) {
         // UPDATE
         const { error } = await supabase
-          .from('molecules')
+          .from(tableName)
           .update(moleculeData)
           .eq('id', editingMolecule.id);
-
+        
         if (error) {
           console.error('Update error:', error);
           throw error;
@@ -1707,106 +1709,71 @@ const saveMolecule = async () => {
         const updatedMolecule = { ...editingMolecule, ...moleculeData };
         const updatedTopic = {
           ...selectedTopic,
-          molecules: selectedTopic.molecules.map(m => 
+          molecules: topicTab === 'course' ? selectedTopic.molecules : selectedTopic.molecules.map(m =>
             m.id === editingMolecule.id ? updatedMolecule : m
-          )
+          ),
+          course_notes: topicTab === 'course' ? selectedTopic.course_notes.map(m =>
+            m.id === editingMolecule.id ? updatedMolecule : m
+          ) : selectedTopic.course_notes
         };
-        
+
         const updatedChapter = {
           ...selectedChapter,
-          topics: selectedChapter.topics.map(t => 
+          topics: selectedChapter.topics.map(t =>
             t.id === selectedTopic.id ? updatedTopic : t
           )
         };
-        
+
         setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
         setSelectedChapter(updatedChapter);
         setSelectedTopic(updatedTopic);
-        
+
         if (viewingMolecule?.id === editingMolecule.id) {
           setViewingMolecule(updatedMolecule);
         }
       } else {
         // INSERT
         const { data, error } = await supabase
-          .from('molecules')
+          .from(tableName)
           .insert([{
             ...moleculeData,
-            topic_id: selectedTopic.id
+            topic_id: selectedTopic.id,
+            user_id: user?.id
           }])
           .select()
           .single();
-
+        
         if (error) {
           console.error('Insert error:', error);
           throw error;
         }
 
-        if (!data) {
-          throw new Error('No data returned from insert');
-        }
-
+        const newMolecule = data;
         const updatedTopic = {
           ...selectedTopic,
-          molecules: [...selectedTopic.molecules, data]
+          molecules: topicTab === 'course' ? selectedTopic.molecules : [...selectedTopic.molecules, newMolecule],
+          course_notes: topicTab === 'course' ? [...selectedTopic.course_notes, newMolecule] : selectedTopic.course_notes
         };
-        
+
         const updatedChapter = {
           ...selectedChapter,
-          topics: selectedChapter.topics.map(t => 
+          topics: selectedChapter.topics.map(t =>
             t.id === selectedTopic.id ? updatedTopic : t
           )
         };
-        
+
         setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
         setSelectedChapter(updatedChapter);
         setSelectedTopic(updatedTopic);
       }
-
-      setShowAddWizard(false);
+      
+      setShowMoleculeWizard(false);
       setEditingMolecule(null);
-      setWizardName('');
-      setWizardStep('name');
-      
-    } catch (error: any) {
-      console.error('Save molecule error:', error);
-      alert(`Failed to save: ${error.message || 'Unknown error'}`);
-    }
-  };
-  const deleteMolecule = async (moleculeId: string) => {
-    if (!selectedChapter || !selectedTopic || !confirm('Delete this molecule?')) return;
-    
-    try {
-      const { error } = await supabase
-        .from('molecules')
-        .delete()
-        .eq('id', moleculeId);
-
-      if (error) throw error;
-
-      const updatedTopic = {
-        ...selectedTopic,
-        molecules: selectedTopic.molecules.filter(m => m.id !== moleculeId)
-      };
-      
-      const updatedChapter = {
-        ...selectedChapter,
-        topics: selectedChapter.topics.map(t => 
-          t.id === selectedTopic.id ? updatedTopic : t
-        )
-      };
-      
-      setChapters(chapters.map(c => c.id === selectedChapter.id ? updatedChapter : c));
-      setSelectedChapter(updatedChapter);
-      setSelectedTopic(updatedTopic);
-      
-      if (viewingMolecule?.id === moleculeId) {
-        setShowMoleculeModal(false);
-        setViewingMolecule(null);
-      }
+      setWizardStep('type');
+      alert('✅ Saved successfully!');
     } catch (error) {
-      console.error('Error deleting molecule:', error);
-      alert('Failed to delete molecule');
+      console.error('Error saving:', error);
+      alert('Failed to save. Please try again.');
     }
   };
 
