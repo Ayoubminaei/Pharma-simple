@@ -360,8 +360,6 @@ export default function PharmaKinase() {
   const [loading, setLoading] = useState(true);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
-const [showResetPassword, setShowResetPassword] = useState(false);
-const [newPassword, setNewPassword] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -472,14 +470,6 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
       setExakinaseView('collections');
     }
   }, [activeTab]);
-  // Détecter le lien de reset password
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      setShowResetPassword(true);
-      setActiveTab('login');
-    }
-  }, []);
 
 const checkSession = async () => {
     try {
@@ -2209,186 +2199,119 @@ const startFlashcards = (chapterId?: string) => {
             </p>
           </div>
 
-</div>
-          
-          {showResetPassword ? (
-            <div className="space-y-4">
-              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Reset Password</h2>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}
-                placeholder="New password"
-              />
-              <button
-                onClick={async () => {
-                  const { error } = await supabase.auth.updateUser({ password: newPassword });
-                  if (error) alert('Error: ' + error.message);
-                  else { alert('✅ Password updated!'); setShowResetPassword(false); setNewPassword(''); }
-                }}
-                className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 rounded-lg"
-              >
-                Update Password
-              </button>
-              <button
-                onClick={() => setShowResetPassword(false)}
-                className={`w-full py-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
-              >
-                Back to Login
-              </button>
-            </div>
-          ) : (
-        
-            // RESET PASSWORD FORM
-            <div className="space-y-4">
-              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
-                Reset Your Password
-              </h2>
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => { setIsLogin(true); setAuthError(''); }}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                isLogin
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => { setIsLogin(false); setAuthError(''); }}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                !isLogin
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                  : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            {authError && (
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-400">{authError}</p>
+              </div>
+            )}
+
+            {!isLogin && (
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  New Password
+                  Full Name
                 </label>
                 <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
                     darkMode 
                       ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
                   } focus:outline-none`}
-                  placeholder="Enter new password"
-                  required
+                  placeholder="Enter your name"
+                  required={!isLogin}
                 />
               </div>
-              <button
-                onClick={async () => {
-                  if (!newPassword) {
-                    alert('Please enter a password');
-                    return;
-                  }
-                  const { error } = await supabase.auth.updateUser({
-                    password: newPassword
-                  });
-                  if (error) {
-                    alert('Error: ' + error.message);
-                  } else {
-                    alert('✅ Password updated successfully!');
-                    setShowResetPassword(false);
-                    setNewPassword('');
-                  }
-                }}
-                className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-xl transition-all"
-              >
-                Update Password
-              </button>
-              <button
-                onClick={() => setShowResetPassword(false)}
-                className={`w-full py-3 rounded-lg font-medium ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
-              >
-                Back to Login
-              </button>
+            )}
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                    : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                } focus:outline-none`}
+                placeholder="your@email.com"
+                required
+              />
             </div>
-          ) : (
-            // NORMAL LOGIN/SIGNUP FORM
-            <>
-              <div className="flex gap-2 mb-6">
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
+                      : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
+                  } focus:outline-none`}
+                  placeholder="Enter password"
+                  required
+                  minLength={6}
+                />
                 <button
-                  onClick={() => { setIsLogin(true); setAuthError(''); }}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                    isLogin
-                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
-                      : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                  }`}
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
                 >
-                  Login
-                </button>
-                <button
-                  onClick={() => { setIsLogin(false); setAuthError(''); }}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                    !isLogin
-                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
-                      : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  Sign Up
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <form onSubmit={handleAuth} className="space-y-4">
-                {authError && (
-                  <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 rounded-lg">
-                    <p className="text-sm text-red-700 dark:text-red-400">{authError}</p>
-                  </div>
-                )}
-                {!isLogin && (
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                        darkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                      } focus:outline-none`}
-                      placeholder="Enter your name"
-                      required={!isLogin}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                      darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                    } focus:outline-none`}
-placeholder="your@email.com"
-                    required
-                  />
-                </div>
-                    
-                <div>
-<label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  
-                  Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                      darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' 
-                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-teal-500'
-                    } focus:outline-none`}
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-xl transition-all"
-                >
-                  {isLogin ? 'Login' : 'Sign Up'}
-                </button>
-            </form>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
+            </div>
+
+<button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
+            >
+              {isLogin ? 'Login' : 'Create Account'}
+            </button>
+            
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}
+              >
+                Forgot your password?
+              </button>
+            )}
+          </form>
 
           <button
             onClick={() => setDarkMode(!darkMode)}
