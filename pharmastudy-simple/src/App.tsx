@@ -1530,11 +1530,23 @@ const saveHistologySlide = async () => {
     }
   };
   // CRUD operations - Molecules with WIZARD
-  const startAddMolecule = () => {
+const startAddMolecule = () => {
     setWizardName('');
     setWizardStep('name');
     setShowAddWizard(true);
-    setEditingMolecule(null);
+    
+    // Créer directement l'objet avec le bon type selon l'onglet actif
+    setEditingMolecule({
+      id: '',
+      topic_id: selectedTopic?.id || '',
+      name: '',
+      smiles: '',
+      formula: '',
+      description: '',
+      image_url: '',
+      molecule_type: topicTab === 'course' ? 'course' : 'drug',
+      use_in_flashcards: topicTab !== 'course'
+    });
   };
 
   const proceedToMethod = () => {
@@ -3003,9 +3015,10 @@ onClick={() => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-{(topicTab === 'course' ? selectedTopic.course_notes : selectedTopic.molecules)
+{(topicTab === 'course' ? (selectedTopic.course_notes || []) : selectedTopic.molecules)
   .filter(molecule => {
-    if (topicTab === 'all' || topicTab === 'course') return true;
+    if (topicTab === 'course') return true;
+    if (topicTab === 'all') return true;
     return molecule.molecule_type === topicTab;
   })
                       
@@ -4759,6 +4772,7 @@ onClick={() => {
                       <option value="drug">💊 Médicament</option>
                       <option value="enzyme">🧬 Enzyme</option>
                       <option value="molecule">⚗️ Molécule</option>
+                      <option value="course">📚 Cours</option>
                     </select>
                   </div>                      
                     </label>
