@@ -2331,8 +2331,9 @@ placeholder="your@email.com"
                 </div>
                     
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Password
+<label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  
+                  Password
                   </label>
                   <input
                     type="password"
