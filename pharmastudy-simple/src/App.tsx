@@ -35,6 +35,34 @@ interface Molecule {
   body_effect?: string;
   use_in_flashcards?: boolean;
 }
+interface CourseNote {
+  id: string;
+  topic_id: string;
+  user_id: string;
+  name: string;
+  smiles: string;
+  formula: string;
+  description: string;
+  image_url?: string;
+  cas_number?: string;
+  molecular_weight?: string;
+  pubchem_cid?: string;
+  drug_category?: string;
+  primary_function?: string;
+  drug_class?: string;
+  route_of_administration?: string;
+  target_receptor?: string;
+  onset_time?: string;
+  peak_time?: string;
+  duration?: string;
+  metabolism?: string;
+  excretion?: string;
+  side_effects?: string;
+  molecule_type?: string;
+  body_effect?: string;
+  use_in_flashcards?: boolean;
+}
+
 interface MechanismStep {
   id: string;
   mechanism_id: string;
@@ -68,6 +96,7 @@ interface Topic {
   chapter_id: string;
   name: string;
   molecules: Molecule[];
+  course_notes: CourseNote[];
 }
 
 interface Chapter {
@@ -490,16 +519,24 @@ const checkSession = async () => {
 
           const topicsWithMolecules = await Promise.all(
             (topicsData || []).map(async (topic) => {
-              const { data: moleculesData } = await supabase
-                .from('molecules')
-                .select('*')
-                .eq('topic_id', topic.id)
-                .order('created_at', { ascending: true });
+const { data: molecules } = await supabase
+  .from('molecules')
+  .select('*')
+  .eq('topic_id', topic.id)
+  .order('created_at', { ascending: true });
 
-              return {
-                ...topic,
-                molecules: moleculesData || []
-              };
+const { data: courseNotes } = await supabase
+  .from('course_notes')
+  .select('*')
+  .eq('topic_id', topic.id)
+  .order('created_at', { ascending: true });
+
+return { 
+  ...topic, 
+  molecules: molecules || [],
+  course_notes: courseNotes || []
+};
+              
             })
           );
 
@@ -2971,8 +3008,18 @@ onClick={() => {
                 >
                   ⚗️ Molécules ({selectedTopic.molecules.filter(m => m.molecule_type === 'molecule').length})
                 </button>
-              </div>
-
+<button
+            onClick={() => setTopicTab('course')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              topicTab === 'course'
+                ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            📚 Cours ({selectedTopic.course_notes.length})
+          </button>
+        </div>
+              
                   {selectedTopic.molecules.length === 0 ? (
                     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
                       <FlaskConical className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
@@ -2989,11 +3036,12 @@ onClick={() => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-{selectedTopic.molecules
+{(topicTab === 'course' ? selectedTopic.course_notes : selectedTopic.molecules)
   .filter(molecule => {
-    if (topicTab === 'all') return true;
+    if (topicTab === 'all' || topicTab === 'course') return true;
     return molecule.molecule_type === topicTab;
   })
+                      
   .map(molecule => (
                         <div
                           key={molecule.id}
