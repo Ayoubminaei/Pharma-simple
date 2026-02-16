@@ -472,15 +472,6 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
     }
   }, [activeTab]);
 // Détecter le lien de reset password
-useEffect(() => {
-  const hash = window.location.hash;
-  console.log('Hash:', hash);
-  if (hash && hash.includes('type=recovery')) {
-    console.log('Reset password detected!');
-    setShowResetPassword(true);
-    setActiveTab('login');
-  }
-}, []);
   
 const checkSession = async () => {
     try {
@@ -2209,7 +2200,7 @@ const startFlashcards = (chapterId?: string) => {
               AI-Powered Molecular Learning
             </p>
           </div>
-{showResetPassword ? (
+{window.location.hash.includes('type=recovery') ? (
   <div className="space-y-4">
     <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Reset Password</h2>
     <input
