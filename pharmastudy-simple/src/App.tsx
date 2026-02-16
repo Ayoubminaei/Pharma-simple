@@ -1770,9 +1770,9 @@ const { data, error } = await supabase
         setSelectedTopic(updatedTopic);
       }
       
-      setShowMoleculeWizard(false);
-      setEditingMolecule(null);
-      setWizardStep('type');
+setShowAddWizard(false);
+setEditingMolecule(null);
+setWizardStep('name');      
       alert('✅ Saved successfully!');
     } catch (error) {
       console.error('Error saving:', error);
