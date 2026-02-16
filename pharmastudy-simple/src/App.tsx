@@ -111,6 +111,7 @@ interface QuizQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+  imageUrl?: string;
 }
 interface HistologySlide {
   id: string;
@@ -366,8 +367,6 @@ export default function PharmaKinase() {
   const [authError, setAuthError] = useState('');
  const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
-const [resetEmail, setResetEmail] = useState('');
-const [resetSent, setResetSent] = useState(false);
   
   // UI states
   const [darkMode, setDarkMode] = useState(false);
