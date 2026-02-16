@@ -2341,9 +2341,9 @@ const startFlashcards = (chapterId?: string) => {
             {isLogin && (
               <button
                 type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}
-              >
+                onClick={() => setShowResetPassword(true)}
+className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}     
+                >
                 Forgot your password?
               </button>
             )}
