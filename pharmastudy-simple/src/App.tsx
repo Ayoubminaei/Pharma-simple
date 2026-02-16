@@ -2436,6 +2436,35 @@ className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300'
   // Main App Interface
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+{/* RESET PASSWORD MODAL */}
+    {window.location.hash.includes('type=recovery') && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-md w-full`}>
+          <h2 className="text-2xl font-bold mb-6">Reset Your Password</h2>
+          <input
+            type="password"
+            placeholder="New password"
+            onChange={(e) => setNewPassword(e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border-2 mb-4 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}
+          />
+          <button
+            onClick={async () => {
+              const { error } = await supabase.auth.updateUser({ password: newPassword });
+              if (error) alert('Error: ' + error.message);
+              else { 
+                alert('✅ Password updated!'); 
+                window.location.hash = '';
+                window.location.reload();
+              }
+            }}
+            className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 rounded-lg"
+          >
+            Update Password
+          </button>
+        </div>
+      </div>
+    )}
+      
       {/* Header */}
       <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-50`}>
         <div className="flex items-center justify-between px-4 py-3">
