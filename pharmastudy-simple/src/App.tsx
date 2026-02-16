@@ -164,7 +164,7 @@ interface ExamCollection {
 }
 
 // Image upload helper
-const uploadImage = async (file: File, user: { id: string }): Promise<string | null> => {
+const uploadImage = async (file: File, user: User | null): Promise<string | null> => {
   if (!user) return null;
   
   try {
