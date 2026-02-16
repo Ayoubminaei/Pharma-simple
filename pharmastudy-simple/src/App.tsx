@@ -364,7 +364,8 @@ export default function PharmaKinase() {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+ const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 const [resetEmail, setResetEmail] = useState('');
 const [resetSent, setResetSent] = useState(false);
   
