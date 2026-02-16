@@ -472,13 +472,15 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
     }
   }, [activeTab]);
 // Détecter le lien de reset password
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      setShowResetPassword(true);
-      setActiveTab('login');
-    }
-  }, []);
+useEffect(() => {
+  const hash = window.location.hash;
+  console.log('Hash:', hash);
+  if (hash && hash.includes('type=recovery')) {
+    console.log('Reset password detected!');
+    setShowResetPassword(true);
+    setActiveTab('login');
+  }
+}, []);
   
 const checkSession = async () => {
     try {
