@@ -1440,7 +1440,7 @@ const saveHistologySlide = async () => {
 
       if (error) throw error;
 
-      const newTopic = { ...data, molecules: [] };
+      const newTopic = { ...data, molecules: [], course_notes: [] };
       const updatedChapter = {
         ...selectedChapter,
         topics: [...selectedChapter.topics, newTopic]
