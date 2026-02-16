@@ -1356,7 +1356,7 @@ const saveHistologySlide = async () => {
     
     setResetSent(true);
     setTimeout(() => {
-      setShowForgotPassword(false);
+      setshowResetPassword(false);
       setResetEmail('');
       setResetSent(false);
     }, 3000);
@@ -2368,7 +2368,7 @@ className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300'
         </div>
         
         {/* PASSWORD RESET MODAL */}
-        {showForgotPassword && (
+        {showResetPassword && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className={`w-full max-w-md ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl p-8`}>
               <div className="text-center mb-6">
@@ -2423,7 +2423,7 @@ className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300'
                   <button
                     type="button"
                     onClick={() => {
-                      setShowForgotPassword(false);
+                      setshowResetPassword(false);
                       setResetEmail('');
                     }}
                     className={`w-full py-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
