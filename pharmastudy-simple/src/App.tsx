@@ -1728,13 +1728,20 @@ const saveMolecule = async () => {
         }
       } else {
         // INSERT
-        const { data, error } = await supabase
-          .from(tableName)
-          .insert([{
-            ...moleculeData,
-            topic_id: selectedTopic.id,
-            user_id: user?.id
-          }])
+const insertData = {
+  ...moleculeData,
+  topic_id: selectedTopic.id
+};
+
+// Ajouter user_id SEULEMENT pour course_notes
+if (tableName === 'course_notes') {
+  insertData.user_id = user?.id;
+}
+
+const { data, error } = await supabase
+  .from(tableName)
+  .insert([insertData])
+        
           .select()
           .single();
         
