@@ -35,33 +35,10 @@ interface Molecule {
   body_effect?: string;
   use_in_flashcards?: boolean;
 }
-interface CourseNote {
-  id: string;
-  topic_id: string;
+// CourseNote uses the same structure as Molecule
+type CourseNote = Molecule & {
   user_id: string;
-  name: string;
-  smiles: string;
-  formula: string;
-  description: string;
-  image_url?: string;
-  cas_number?: string;
-  molecular_weight?: string;
-  pubchem_cid?: string;
-  drug_category?: string;
-  primary_function?: string;
-  drug_class?: string;
-  route_of_administration?: string;
-  target_receptor?: string;
-  onset_time?: string;
-  peak_time?: string;
-  duration?: string;
-  metabolism?: string;
-  excretion?: string;
-  side_effects?: string;
-  molecule_type?: string;
-  body_effect?: string;
-  use_in_flashcards?: boolean;
-}
+};
 
 interface MechanismStep {
   id: string;
