@@ -440,10 +440,14 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
   const [processingAI, setProcessingAI] = useState(false);
   const [exakinaseView, setExakinaseView] = useState<'collections' | 'topics' | 'questions'>('collections');
   
-  // Check session on mount
-  useEffect(() => {
-    checkSession();
-  }, []);
+useEffect(() => {
+  // Capturer le hash AVANT que Supabase le nettoie
+  const hash = window.location.hash;
+  if (hash && hash.includes('type=recovery')) {
+    setShowResetPassword(true);
+  }
+  checkSession();
+}, []);
 
   useEffect(() => {
     localStorage.setItem('pharmaDarkMode', darkMode.toString());
@@ -2437,7 +2441,7 @@ className={`w-full mt-3 text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300'
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
 {/* RESET PASSWORD MODAL */}
-    {window.location.hash.includes('type=recovery') && (
+    {showResetPassword && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-md w-full`}>
           <h2 className="text-2xl font-bold mb-6">Reset Your Password</h2>
