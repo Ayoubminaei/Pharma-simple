@@ -1727,16 +1727,17 @@ const saveMolecule = async () => {
           setViewingMolecule(updatedMolecule);
         }
       } else {
-        // INSERT
-const insertData = {
-  ...moleculeData,
-  topic_id: selectedTopic.id
-};
-
-// Ajouter user_id SEULEMENT pour course_notes
-if (tableName === 'course_notes') {
-  insertData.user_id = user?.id;
-}
+// INSERT
+const insertData = tableName === 'course_notes' 
+  ? {
+      ...moleculeData,
+      topic_id: selectedTopic.id,
+      user_id: user?.id
+    }
+  : {
+      ...moleculeData,
+      topic_id: selectedTopic.id
+    };
 
 const { data, error } = await supabase
   .from(tableName)
