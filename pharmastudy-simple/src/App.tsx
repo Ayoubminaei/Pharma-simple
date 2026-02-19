@@ -1923,56 +1923,76 @@ const generateQuiz = (chapterId?: string) => {
   };
 // Flashcard functions
 const startFlashcards = (chapterId?: string) => {
-    let molecules;
-    
-    if (chapterId) {
-      // Flashcards for specific chapter
-      const chapter = chapters.find(c => c.id === chapterId);
-      if (!chapter) return;
+  let allQuestions: any[] = [];
+  
+  const chaptersToUse = chapterId 
+    ? chapters.filter(c => c.id === chapterId)
+    : chapters;
+  
+  chaptersToUse.forEach(chapter => {
+    chapter.topics.forEach(topic => {
+      // Obtenir la config des questions pour ce topic
+      const config = topic.flashcard_config?.question_types || [];
+      const enabledQuestions = config.filter((q: any) => q.enabled);
       
-      molecules = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url && m.use_in_flashcards !== false);
-    } else {
-      // All molecules
-      molecules = chapters.flatMap(c => 
-        c.topics.flatMap(t => t.molecules)
-      ).filter(m => m.image_url && m.use_in_flashcards !== false);
-    }
-    
-    if (molecules.length === 0) {
-      alert('No flashcards available! Add molecules with images and enable them for flashcards.');
-      return;
-    }
-    
-    const shuffled = [...molecules].sort(() => Math.random() - 0.5);
-    setFlashcards(shuffled);
-    setCurrentFlashcardIndex(0);
-    setShowFlashcardAnswer(false);
-    setFlashcardStats({ correct: 0, wrong: 0 });
-    setFlashcardMode(true);
-  };
-
-  const revealFlashcardAnswer = () => {
-    setShowFlashcardAnswer(true);
-  };
-
-  const markCorrect = () => {
-    setFlashcardStats(prev => ({ ...prev, correct: prev.correct + 1 }));
-    nextFlashcard();
-  };
-
-  const markWrong = () => {
-    setFlashcardStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
-    nextFlashcard();
-  };
-
-  const nextFlashcard = () => {
-    if (currentFlashcardIndex < flashcards.length - 1) {
-      setCurrentFlashcardIndex(prev => prev + 1);
-      setShowFlashcardAnswer(false);
-    } else {
-      setFlashcardMode(false);
-    }
-  };
+      if (enabledQuestions.length === 0) {
+        // Config par défaut: image → nom
+        topic.molecules
+          .filter(m => m.image_url && m.use_in_flashcards !== false)
+          .forEach(m => {
+            allQuestions.push({
+              type: 'image_to_name',
+              molecule: m,
+              question: 'Quelle est cette molécule?',
+              answer: m.name,
+              hasImage: true
+            });
+          });
+      } else {
+        // Utiliser la config personnalisée
+        topic.molecules
+          .filter(m => m.use_in_flashcards !== false)
+          .forEach(molecule => {
+            enabledQuestions.forEach((q: any) => {
+              // Question avec image (si disponible)
+              if (q.type === 'image_to_name' && molecule.image_url) {
+                allQuestions.push({
+                  type: 'image_to_name',
+                  molecule,
+                  question: q.label,
+                  answer: molecule.name,
+                  hasImage: true
+                });
+              }
+              // Question texte → texte
+              else if (q.field && molecule[q.field]) {
+                allQuestions.push({
+                  type: 'name_to_field',
+                  molecule,
+                  question: `${molecule.name} - ${q.label}`,
+                  answer: molecule[q.field],
+                  hasImage: false
+                });
+              }
+            });
+          });
+      }
+    });
+  });
+  
+  if (allQuestions.length === 0) {
+    alert('No flashcards available! Configure questions for your topics.');
+    return;
+  }
+  
+  const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+  setFlashcards(shuffled);
+  setCurrentFlashcardIndex(0);
+  setShowFlashcardAnswer(false);
+  setFlashcardStats({ correct: 0, wrong: 0 });
+  setFlashcardMode(true);
+};
+  
   // PDF Export function
   const exportChapterToPDF = async (chapter: Chapter) => {
     try {
@@ -3535,17 +3555,24 @@ onClick={() => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-8 mb-6 flex items-center justify-center" style={{ minHeight: '300px' }}>
-                    {flashcards[currentFlashcardIndex].image_url ? (
-                      <img 
-                        src={flashcards[currentFlashcardIndex].image_url} 
-                        alt="Guess this molecule"
-                        className="max-h-64 object-contain"
-                      />
-                    ) : (
-                      <FlaskConical className="w-32 h-32 text-gray-400" />
-                    )}
-                  </div>
+<div className="bg-white rounded-xl p-8 mb-6 flex items-center justify-center" style={{ minHeight: '300px' }}>
+  {flashcards[currentFlashcardIndex].hasImage ? (
+    <img 
+      src={flashcards[currentFlashcardIndex].molecule.image_url} 
+      alt="Guess this molecule"
+      className="max-h-64 object-contain"
+    />
+  ) : (
+    <div className="text-center">
+      <h2 className="text-4xl font-bold text-gray-800 mb-4">
+        {flashcards[currentFlashcardIndex].molecule.name}
+      </h2>
+      <p className="text-xl text-gray-600">
+        {flashcards[currentFlashcardIndex].question.split(' - ')[1]}
+      </p>
+    </div>
+  )}
+</div>
 
                   {!showFlashcardAnswer ? (
                     <div>
@@ -3559,33 +3586,33 @@ onClick={() => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className={`${darkMode ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-800' : 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200'} rounded-xl p-6`}>
-                        <h3 className="text-2xl font-bold mb-4">{flashcards[currentFlashcardIndex].name}</h3>
+<div className={`${darkMode ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-800' : 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200'} rounded-xl p-6`}>
+                        <h3 className="text-2xl font-bold mb-4">✅ {flashcards[currentFlashcardIndex].answer}</h3>
                         
-                        {flashcards[currentFlashcardIndex].formula && (
+                        {flashcards[currentFlashcardIndex].molecule.formula && (
                           <p className={`text-lg mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            <strong>Formula:</strong> {flashcards[currentFlashcardIndex].formula}
+                            <strong>Formula:</strong> {flashcards[currentFlashcardIndex].molecule.formula}
                           </p>
                         )}
 
-                        {flashcards[currentFlashcardIndex].drug_category && (
+                        {flashcards[currentFlashcardIndex].molecule.drug_category && (
                           <p className="mb-3">
                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
-                              {flashcards[currentFlashcardIndex].drug_category}
+                              {flashcards[currentFlashcardIndex].molecule.drug_category}
                             </span>
                           </p>
                         )}
 
-                        {flashcards[currentFlashcardIndex].primary_function && (
+                        {flashcards[currentFlashcardIndex].molecule.primary_function && (
                           <div className="mt-4">
                             <strong className="block mb-2">🎯 Primary Function:</strong>
                             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {flashcards[currentFlashcardIndex].primary_function}
+                              {flashcards[currentFlashcardIndex].molecule.primary_function}
                             </p>
                           </div>
                         )}
                       </div>
-
+                      
                       <div className="flex gap-3">
                         <button
                           onClick={markCorrect}
