@@ -1937,8 +1937,8 @@ const startFlashcards = (chapterId?: string) => {
       
       if (enabledQuestions.length === 0) {
         // Config par défaut: image → nom
-        topic.molecules
-          .filter(m => m.image_url && m.use_in_flashcards !== false)
+topic.molecules
+  .filter(m => m.use_in_flashcards !== false)
           .forEach(m => {
             allQuestions.push({
               type: 'image_to_name',
@@ -5214,9 +5214,30 @@ onClick={() => {
                           className="w-5 h-5"
                         />
 <div className="flex-1">
+                          <label className={`block text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Type de question:
+                          </label>
+                          <select
+                            value={q.type}
+                            onChange={(e) => {
+                              const updated = { ...editingFlashcardConfig };
+                              updated.flashcard_config.question_types[idx].type = e.target.value;
+                              // Si on change pour image_to_name, pas besoin de field
+                              if (e.target.value === 'image_to_name') {
+                                updated.flashcard_config.question_types[idx].field = '';
+                              }
+                              setEditingFlashcardConfig(updated);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg mb-3 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}
+                          >
+                            <option value="image_to_name">🖼️ Image → Nom</option>
+                            <option value="name_to_field">📝 Nom → Question</option>
+                          </select>
+                          
                           <input
                             type="text"
                             value={q.label}
+                        
                             onChange={(e) => {
                               const updated = { ...editingFlashcardConfig };
                               updated.flashcard_config.question_types[idx].label = e.target.value;
