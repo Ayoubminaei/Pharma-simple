@@ -4421,8 +4421,6 @@ onClick={() => {
               )}
             </div>
           )}
-          
-        </main>
       </div>
 
           {/* MECHANISM DETAIL MODAL */}
@@ -6156,7 +6154,7 @@ onClick={() => {
           </div>
         </div>
       )}
-      
+      </main>
     </div>
   );
 }
