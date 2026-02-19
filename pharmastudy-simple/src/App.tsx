@@ -74,6 +74,14 @@ interface Topic {
   name: string;
   molecules: Molecule[];
   course_notes: CourseNote[];
+  flashcard_config?: {
+    question_types: Array<{
+      type: string;
+      enabled: boolean;
+      label: string;
+      field?: string;
+    }>;
+  };
 }
 
 interface Chapter {
@@ -398,6 +406,8 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
+const [showFlashcardConfig, setShowFlashcardConfig] = useState(false);
+const [editingFlashcardConfig, setEditingFlashcardConfig] = useState<any>(null);
 // Histology states
   const [histologyTopics, setHistologyTopics] = useState<HistologyTopic[]>([]);
   const [selectedHistologyTopic, setSelectedHistologyTopic] = useState<HistologyTopic | null>(null);
@@ -2990,8 +3000,33 @@ onClick={() => {
                               autoFocus
                               onClick={(e) => e.stopPropagation()}
                             />
-                          ) : (
-                            <h3 className="text-xl font-bold mb-3">🧬 {topic.name}</h3>
+) : (
+                            <div className="flex items-start justify-between mb-3">
+                              <h3 className="text-xl font-bold">🧬 {topic.name}</h3>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingFlashcardConfig(topic);
+                                    setShowFlashcardConfig(true);
+                                  }}
+                                  className={`p-1 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                  title="Configure Flashcards"
+                                >
+                                  ⚙️
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingTopic(topic);
+                                  }}
+                                  className={`p-1 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                  title="Edit name"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
                           )}
                           
                           <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -5086,6 +5121,130 @@ onClick={() => {
           </div>
         </div>
       )}
+{/* FLASHCARD CONFIG MODAL */}
+      {showFlashcardConfig && editingFlashcardConfig && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className="text-2xl font-bold">⚙️ Configure Flashcards</h2>
+              <button
+                onClick={() => {
+                  setShowFlashcardConfig(false);
+                  setEditingFlashcardConfig(null);
+                }}
+                className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Topic: <strong>{editingFlashcardConfig.name}</strong>
+              </p>
+
+              <h3 className="font-bold mb-4">📝 Flashcard Questions</h3>
+              
+              {/* Question List */}
+              <div className="space-y-4 mb-6">
+                {(editingFlashcardConfig.flashcard_config?.question_types || []).map((q: any, idx: number) => (
+                  <div key={idx} className={`p-4 rounded-lg border-2 ${q.enabled ? 'border-green-500' : darkMode ? 'border-gray-700' : 'border-gray-200'} ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={q.enabled}
+                          onChange={(e) => {
+                            const updated = { ...editingFlashcardConfig };
+                            updated.flashcard_config.question_types[idx].enabled = e.target.checked;
+                            setEditingFlashcardConfig(updated);
+                          }}
+                          className="w-5 h-5"
+                        />
+                        <div>
+                          <p className="font-medium">{q.label}</p>
+                          {q.field && <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Field: {q.field}</p>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const updated = { ...editingFlashcardConfig };
+                          updated.flashcard_config.question_types.splice(idx, 1);
+                          setEditingFlashcardConfig(updated);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Question */}
+              <button
+                onClick={() => {
+                  const updated = { ...editingFlashcardConfig };
+                  if (!updated.flashcard_config) {
+                    updated.flashcard_config = { question_types: [] };
+                  }
+                  updated.flashcard_config.question_types.push({
+                    type: 'name_to_field',
+                    enabled: true,
+                    label: 'Nouvelle question?',
+                    field: 'primary_function'
+                  });
+                  setEditingFlashcardConfig(updated);
+                }}
+                className={`w-full py-3 rounded-lg border-2 border-dashed ${darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'} transition-all`}
+              >
+                ➕ Add Question
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex gap-3 p-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('topics')
+                      .update({ 
+                        flashcard_config: editingFlashcardConfig.flashcard_config 
+                      })
+                      .eq('id', editingFlashcardConfig.id);
+                    
+                    if (error) throw error;
+                    
+                    await loadChapters();
+                    setShowFlashcardConfig(false);
+                    setEditingFlashcardConfig(null);
+                    alert('✅ Flashcard config saved!');
+                  } catch (error) {
+                    console.error('Error saving config:', error);
+                    alert('Failed to save config');
+                  }
+                }}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-3 rounded-lg font-medium"
+              >
+                💾 Save Configuration
+              </button>
+              <button
+                onClick={() => {
+                  setShowFlashcardConfig(false);
+                  setEditingFlashcardConfig(null);
+                }}
+                className={`px-6 py-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
 {/* HISTOLOGY TOPIC EDIT MODAL */}
       {editingHistologyTopic && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
