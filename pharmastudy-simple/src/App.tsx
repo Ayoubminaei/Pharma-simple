@@ -5163,10 +5163,37 @@ onClick={() => {
                           }}
                           className="w-5 h-5"
                         />
-                        <div>
-                          <p className="font-medium">{q.label}</p>
-                          {q.field && <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Field: {q.field}</p>}
+<div className="flex-1">
+                          <input
+                            type="text"
+                            value={q.label}
+                            onChange={(e) => {
+                              const updated = { ...editingFlashcardConfig };
+                              updated.flashcard_config.question_types[idx].label = e.target.value;
+                              setEditingFlashcardConfig(updated);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg mb-2 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}
+                            placeholder="Question text..."
+                          />
+                          <select
+                            value={q.field || ''}
+                            onChange={(e) => {
+                              const updated = { ...editingFlashcardConfig };
+                              updated.flashcard_config.question_types[idx].field = e.target.value;
+                              setEditingFlashcardConfig(updated);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}
+                          >
+                            <option value="">Image → Name (no field)</option>
+                            <option value="primary_function">→ Primary Function</option>
+                            <option value="target_receptor">→ Target Receptor</option>
+                            <option value="side_effects">→ Side Effects</option>
+                            <option value="drug_class">→ Drug Class</option>
+                            <option value="metabolism">→ Metabolism</option>
+                            <option value="description">→ Description</option>
+                          </select>
                         </div>
+                        
                       </div>
                       <button
                         onClick={() => {
