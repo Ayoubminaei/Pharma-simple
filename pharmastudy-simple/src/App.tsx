@@ -4421,7 +4421,6 @@ onClick={() => {
               )}
             </div>
           )}
-      </div>
 
           {/* MECHANISM DETAIL MODAL */}
           {viewingMechanism && !showMechanismModal && (
