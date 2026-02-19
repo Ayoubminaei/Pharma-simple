@@ -1986,7 +1986,15 @@ topic.molecules
     return;
   }
   
-  const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+console.log('🎴 Total questions:', allQuestions.length);
+console.log('📊 Détails:', allQuestions.map(q => ({
+  nom: q.molecule.name,
+  type: q.type,
+  hasImage: q.hasImage,
+  image: q.molecule.image_url ? 'OUI' : 'NON'
+})));
+const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+  
   setFlashcards(shuffled);
   setCurrentFlashcardIndex(0);
   setShowFlashcardAnswer(false);
