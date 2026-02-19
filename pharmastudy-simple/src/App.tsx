@@ -3533,10 +3533,10 @@ onClick={() => {
                       </p>
                     </div>
 
-                    {chapters.map(chapter => {
-                      const moleculesWithImages = chapter.topics.flatMap(t => t.molecules).filter(m => m.image_url).length;
-                      
-                      if (moleculesWithImages === 0) return null;
+{chapters.map(chapter => {
+  const moleculesWithImages = chapter.topics.flatMap(t => t.molecules).filter(m => m.use_in_flashcards !== false).length;
+  
+  if (moleculesWithImages === 0) return null;
                       
                       return (
                         <div
@@ -3549,9 +3549,10 @@ onClick={() => {
                           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {chapter.topics.length} topics
                           </p>
-                          <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                            {moleculesWithImages} cards available
-                          </p>
+<p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+  {moleculesWithImages} molecules
+</p>
+                          
                         </div>
                       );
                     })}
