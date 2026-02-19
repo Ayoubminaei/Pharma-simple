@@ -1992,6 +1992,29 @@ const startFlashcards = (chapterId?: string) => {
   setFlashcardStats({ correct: 0, wrong: 0 });
   setFlashcardMode(true);
 };
+
+const revealFlashcardAnswer = () => {
+  setShowFlashcardAnswer(true);
+};
+
+const markCorrect = () => {
+  setFlashcardStats(prev => ({ ...prev, correct: prev.correct + 1 }));
+  nextFlashcard();
+};
+
+const markWrong = () => {
+  setFlashcardStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
+  nextFlashcard();
+};
+
+const nextFlashcard = () => {
+  if (currentFlashcardIndex < flashcards.length - 1) {
+    setCurrentFlashcardIndex(prev => prev + 1);
+    setShowFlashcardAnswer(false);
+  } else {
+    setFlashcardMode(false);
+  }
+};
   
   // PDF Export function
   const exportChapterToPDF = async (chapter: Chapter) => {
