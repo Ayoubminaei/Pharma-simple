@@ -3619,9 +3619,9 @@ onClick={() => {
   )}
 </div>
 
-                  {!showFlashcardAnswer ? (
-                    <div>
-                      <h3 className="text-xl font-bold mb-4 text-center">🤔 What is this molecule?</h3>
+{!showFlashcardAnswer ? (
+  <div>
+    <h3 className="text-xl font-bold mb-4 text-center">{flashcards[currentFlashcardIndex].question}</h3>
                       <button
                         onClick={revealFlashcardAnswer}
                         className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all"
