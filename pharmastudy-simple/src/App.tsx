@@ -1954,19 +1954,20 @@ topic.molecules
           .filter(m => m.use_in_flashcards !== false)
           .forEach(molecule => {
             enabledQuestions.forEach((q: any) => {
-              // Question avec image (si disponible)
-              if (q.type === 'image_to_name' && molecule.image_url) {
-                allQuestions.push({
-                  type: 'image_to_name',
-                  molecule,
-                  question: q.label,
-                  answer: molecule.name,
-                  hasImage: true
-                });
-              }
-              // Question texte → texte
-              else if (q.field && molecule[q.field]) {
-                allQuestions.push({
+                // Question avec image (si disponible)
+                if (q.type === 'image_to_name' && molecule.image_url) {
+                  allQuestions.push({
+                    type: 'image_to_name',
+                    molecule,
+                    question: q.label,
+                    answer: molecule.name,
+                    hasImage: true
+                  });
+                }
+                // Question texte → texte
+                if (q.type === 'name_to_field' && q.field && molecule[q.field]) {
+                  allQuestions.push({
+              
                   type: 'name_to_field',
                   molecule,
                   question: `${molecule.name} - ${q.label}`,
@@ -3560,11 +3561,23 @@ onClick={() => {
                 </div>
 ) : currentFlashcardIndex < flashcards.length ? (
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 max-w-4xl mx-auto`}>
-                  <div className="mb-6">
+<div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Card {currentFlashcardIndex + 1} of {flashcards.length}
                       </span>
+                      <button
+                        onClick={() => {
+                          if (confirm('Quitter les flashcards?')) {
+                            setFlashcardMode(false);
+                            setFlashcards([]);
+                          }
+                        }}
+                        className={`px-3 py-1 rounded-lg text-sm ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                      >
+                        ❌ Quit
+                      </button>
+                  
                       <div className="flex items-center gap-4">
                         <span className="text-sm font-medium text-green-600">✅ {flashcardStats.correct}</span>
                         <span className="text-sm font-medium text-red-600">❌ {flashcardStats.wrong}</span>
