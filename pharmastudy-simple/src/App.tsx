@@ -3829,6 +3829,7 @@ onClick={() => {
     </div>
   </div>
 )}
+ )}
   
 {/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
