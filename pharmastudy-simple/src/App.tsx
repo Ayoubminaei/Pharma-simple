@@ -406,6 +406,7 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
+  const [currentFlashcardChapter, setCurrentFlashcardChapter] = useState<string | undefined>();
 const [flashcardResults, setFlashcardResults] = useState<Array<{
   molecule: any;
   question: string;
@@ -1930,6 +1931,7 @@ const generateQuiz = (chapterId?: string) => {
   };
 // Flashcard functions
 const startFlashcards = (chapterId?: string) => {
+  setCurrentFlashcardChapter(chapterId); 
   let allQuestions: any[] = [];
   
   const chaptersToUse = chapterId 
@@ -3816,7 +3818,7 @@ onClick={() => {
         🏠 Retour
       </button>
       <button
-        onClick={startFlashcards}
+        onClick={() => startFlashcards(currentFlashcardChapter)}
         className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all"
       >
         <PlayCircle className="w-5 h-5" />
