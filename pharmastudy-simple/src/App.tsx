@@ -413,6 +413,24 @@ const [flashcardResults, setFlashcardResults] = useState<Array<{
   answer: string;
   correct: boolean;
 }>>([]);
+  // Statistics states
+const [statsLoading, setStatsLoading] = useState(false);
+const [statsData, setStatsData] = useState<{
+  totalSessions: number;
+  totalCards: number;
+  successRate: number;
+  weakMolecules: Array<{
+    molecule: Molecule;
+    total: number;
+    correct: number;
+    successRate: number;
+  }>;
+  recentActivity: Array<{
+    date: string;
+    correct: number;
+    wrong: number;
+  }>;
+} | null>(null);
   
 const [showFlashcardConfig, setShowFlashcardConfig] = useState(false);
 const [editingFlashcardConfig, setEditingFlashcardConfig] = useState<any>(null);
@@ -1930,6 +1948,98 @@ const generateQuiz = (chapterId?: string) => {
     setQuizActive(true);
   };
 // Flashcard functions
+// Load statistics
+const loadStatistics = async () => {
+  if (!user) return;
+  
+  setStatsLoading(true);
+  try {
+    // Charger tout l'historique
+    const { data: history, error } = await supabase
+      .from('flashcard_history')
+      .select('*, molecules(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    if (!history || history.length === 0) {
+      setStatsData({
+        totalSessions: 0,
+        totalCards: 0,
+        successRate: 0,
+        weakMolecules: [],
+        recentActivity: []
+      });
+      setStatsLoading(false);
+      return;
+    }
+    
+    // Calculer les stats
+    const totalCards = history.length;
+    const correctCards = history.filter(h => h.correct).length;
+    const successRate = Math.round((correctCards / totalCards) * 100);
+    
+    // Molécules faibles (grouper par molécule)
+    const moleculeStats = new Map();
+    history.forEach(h => {
+      if (!h.molecules) return;
+      const key = h.molecule_id;
+      if (!moleculeStats.has(key)) {
+        moleculeStats.set(key, {
+          molecule: h.molecules,
+          total: 0,
+          correct: 0
+        });
+      }
+      const stats = moleculeStats.get(key);
+      stats.total++;
+      if (h.correct) stats.correct++;
+    });
+    
+    const weakMolecules = Array.from(moleculeStats.values())
+      .map(stats => ({
+        ...stats,
+        successRate: Math.round((stats.correct / stats.total) * 100)
+      }))
+      .filter(m => m.total >= 3) // Au moins 3 tentatives
+      .sort((a, b) => a.successRate - b.successRate)
+      .slice(0, 10); // Top 10 molécules faibles
+    
+    // Activité récente (7 derniers jours)
+    const last7Days = new Map();
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      last7Days.set(dateStr, { date: dateStr, correct: 0, wrong: 0 });
+    }
+    
+    history.forEach(h => {
+      const dateStr = h.created_at.split('T')[0];
+      if (last7Days.has(dateStr)) {
+        const day = last7Days.get(dateStr);
+        if (h.correct) day.correct++;
+        else day.wrong++;
+      }
+    });
+    
+    setStatsData({
+      totalSessions: 0, // On calculera ça plus tard si besoin
+      totalCards,
+      successRate,
+      weakMolecules,
+      recentActivity: Array.from(last7Days.values())
+    });
+    
+  } catch (error) {
+    console.error('Error loading statistics:', error);
+  } finally {
+    setStatsLoading(false);
+  }
+};
+  
 const startFlashcards = (chapterId?: string) => {
   setCurrentFlashcardChapter(chapterId); 
   let allQuestions: any[] = [];
@@ -2016,25 +2126,59 @@ const revealFlashcardAnswer = () => {
   setShowFlashcardAnswer(true);
 };
 
-const markCorrect = () => {
+const markCorrect = async () => {
+  const current = flashcards[currentFlashcardIndex];
+  
   setFlashcardStats(prev => ({ ...prev, correct: prev.correct + 1 }));
   setFlashcardResults(prev => [...prev, {
-    molecule: flashcards[currentFlashcardIndex].molecule,
-    question: flashcards[currentFlashcardIndex].question,
-    answer: flashcards[currentFlashcardIndex].answer,
+    molecule: current.molecule,
+    question: current.question,
+    answer: current.answer,
     correct: true
   }]);
+  
+  // Sauvegarder dans Supabase
+  try {
+    await supabase.from('flashcard_history').insert({
+      user_id: user?.id,
+      molecule_id: current.molecule.id,
+      topic_id: current.molecule.topic_id,
+      question: current.question,
+      answer: current.answer,
+      correct: true
+    });
+  } catch (error) {
+    console.error('Error saving flashcard result:', error);
+  }
+  
   nextFlashcard();
 };
 
-const markWrong = () => {
+const markWrong = async () => {
+  const current = flashcards[currentFlashcardIndex];
+  
   setFlashcardStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
   setFlashcardResults(prev => [...prev, {
-    molecule: flashcards[currentFlashcardIndex].molecule,
-    question: flashcards[currentFlashcardIndex].question,
-    answer: flashcards[currentFlashcardIndex].answer,
+    molecule: current.molecule,
+    question: current.question,
+    answer: current.answer,
     correct: false
   }]);
+  
+  // Sauvegarder dans Supabase
+  try {
+    await supabase.from('flashcard_history').insert({
+      user_id: user?.id,
+      molecule_id: current.molecule.id,
+      topic_id: current.molecule.topic_id,
+      question: current.question,
+      answer: current.answer,
+      correct: false
+    });
+  } catch (error) {
+    console.error('Error saving flashcard result:', error);
+  }
+  
   nextFlashcard();
 };
 
@@ -2654,6 +2798,21 @@ onClick={() => {
               <Sparkles className="w-5 h-5" />
               <span className="font-medium">Flashcards</span>
             </button> 
+<button
+            onClick={() => {
+              setActiveTab('statistics');
+              setSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'statistics'
+                ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+            }`}
+          >
+            <Brain className="w-5 h-5" />
+            <span className="font-medium">Statistics</span>
+          </button>
+            
           <button
 onClick={() => {
   setActiveTab('mechanisms');
@@ -3829,7 +3988,135 @@ onClick={() => {
 )}
   </div>
  )}
-  
+
+{/* STATISTICS VIEW */}
+          {activeTab === 'statistics' && (
+            <div>
+              <h1 className="text-3xl font-bold mb-6">📊 Statistics</h1>
+              
+              <button
+                onClick={loadStatistics}
+                className="mb-6 flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
+              >
+                🔄 Refresh Stats
+              </button>
+              
+              {statsLoading ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                  <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p>Loading statistics...</p>
+                </div>
+              ) : !statsData ? (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-12 text-center`}>
+                  <Brain className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <h3 className="text-xl font-bold mb-2">No statistics yet</h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Complete some flashcard sessions to see your stats!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Vue d'ensemble */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`${darkMode ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'} border-2 rounded-xl p-6`}>
+                      <div className="text-4xl mb-2">🎴</div>
+                      <div className="text-3xl font-bold mb-1">{statsData.totalCards}</div>
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Cards Studied</div>
+                    </div>
+                    
+                    <div className={`${darkMode ? 'bg-gradient-to-br from-green-900/30 to-green-800/30 border-green-700' : 'bg-gradient-to-br from-green-50 to-green-100 border-green-200'} border-2 rounded-xl p-6`}>
+                      <div className="text-4xl mb-2">✅</div>
+                      <div className="text-3xl font-bold mb-1">{statsData.successRate}%</div>
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Success Rate</div>
+                    </div>
+                    
+                    <div className={`${darkMode ? 'bg-gradient-to-br from-purple-900/30 to-purple-800/30 border-purple-700' : 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200'} border-2 rounded-xl p-6`}>
+                      <div className="text-4xl mb-2">📈</div>
+                      <div className="text-3xl font-bold mb-1">{statsData.weakMolecules.length}</div>
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Molecules to Review</div>
+                    </div>
+                  </div>
+                  
+                  {/* Activité récente */}
+                  <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6`}>
+                    <h2 className="text-2xl font-bold mb-4">📅 Last 7 Days</h2>
+                    <div className="flex items-end justify-between gap-2 h-48">
+                      {statsData.recentActivity.map((day, idx) => {
+                        const total = day.correct + day.wrong;
+                        const height = total > 0 ? Math.max((total / Math.max(...statsData.recentActivity.map(d => d.correct + d.wrong))) * 100, 10) : 5;
+                        const successRate = total > 0 ? (day.correct / total) * 100 : 0;
+                        
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center">
+                            <div className="w-full flex flex-col items-center gap-1 mb-2">
+                              {day.correct > 0 && (
+                                <div 
+                                  className="w-full bg-gradient-to-t from-green-400 to-green-500 rounded-t"
+                                  style={{ height: `${(day.correct / total) * height}%` }}
+                                  title={`${day.correct} correct`}
+                                />
+                              )}
+                              {day.wrong > 0 && (
+                                <div 
+                                  className="w-full bg-gradient-to-t from-red-400 to-red-500 rounded-b"
+                                  style={{ height: `${(day.wrong / total) * height}%` }}
+                                  title={`${day.wrong} wrong`}
+                                />
+                              )}
+                            </div>
+                            <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short' })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Molécules à revoir */}
+                  {statsData.weakMolecules.length > 0 && (
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6`}>
+                      <h2 className="text-2xl font-bold mb-4">⚠️ Molecules to Review</h2>
+                      <div className="space-y-3">
+                        {statsData.weakMolecules.map((item, idx) => (
+                          <div key={idx} className={`flex items-center justify-between p-4 rounded-lg ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                            <div className="flex-1">
+                              <h3 className="font-bold">{item.molecule.name}</h3>
+                              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {item.correct} / {item.total} correct
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className={`text-2xl font-bold ${
+                                  item.successRate >= 70 ? 'text-green-500' :
+                                  item.successRate >= 50 ? 'text-yellow-500' :
+                                  'text-red-500'
+                                }`}>
+                                  {item.successRate}%
+                                </div>
+                              </div>
+                              <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                                <div 
+                                  className={`h-3 rounded-full ${
+                                    item.successRate >= 70 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                    item.successRate >= 50 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                    'bg-gradient-to-r from-red-400 to-red-500'
+                                  }`}
+                                  style={{ width: `${item.successRate}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
 {/* MECHANISMS VIEW */}
           {activeTab === 'mechanisms' && (
             <div>
