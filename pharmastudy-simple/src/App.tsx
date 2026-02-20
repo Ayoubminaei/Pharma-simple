@@ -3829,6 +3829,7 @@ onClick={() => {
     </div>
   </div>
 )}
+  </div>
  )}
   
 {/* MECHANISMS VIEW */}
