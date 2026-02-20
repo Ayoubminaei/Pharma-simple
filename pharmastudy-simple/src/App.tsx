@@ -406,12 +406,6 @@ const [currentView, setCurrentView] = useState<'chapters' | 'topics' | 'molecule
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState({ correct: 0, wrong: 0 });
-  const [flashcardResults, setFlashcardResults] = useState<Array<{
-  molecule: any;
-  question: string;
-  answer: string;
-  correct: boolean;
-}>>([]);
 const [flashcardResults, setFlashcardResults] = useState<Array<{
   molecule: any;
   question: string;
