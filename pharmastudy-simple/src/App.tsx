@@ -2037,12 +2037,8 @@ const markWrong = () => {
 };
 
 const nextFlashcard = () => {
-  if (currentFlashcardIndex < flashcards.length - 1) {
-    setCurrentFlashcardIndex(prev => prev + 1);
-    setShowFlashcardAnswer(false);
-  } else {
-    setFlashcardMode(false);
-  }
+  setCurrentFlashcardIndex(prev => prev + 1);
+  setShowFlashcardAnswer(false);
 };
   
   // PDF Export function
